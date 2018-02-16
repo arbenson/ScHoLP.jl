@@ -1,4 +1,7 @@
-export HONData, SpIntMat, SpFltMat, NbrSetMap, common_neighbors_map
+export HONData, SpIntMat, SpFltMat
+export NbrSetMap, common_neighbors_map
+export basic_matrices, num_open_closed_triangles, sorted_tuple
+export enum_open_triangles, new_closures
 
 """
 SpIntMat
@@ -112,60 +115,79 @@ function common_neighbors_map(B::SpIntMat, triangles::Vector{NTuple{3,Int64}})
     return common_nbrs
 end
 
+"""
+
+"""
+function new_closures(old_simplices::Vector{Int64}, old_nverts::Vector{Int64},
+                      new_simplices::Vector{Int64}, new_nverts::Vector{Int64})
+    A_old, A_old_t, B_old = basic_matrices(old_simplices, old_nverts)
+    simp_order = simplex_degree_order(A_old_t)
+    n = size(B_old, 1)
+    is_new_node = sum(A_old_t, 1) .== 0
+    new_triangles = Set{NTuple{3,Int64}}()
+
+    curr_ind = 1
+    for nvert in new_nverts
+        simp = new_simplices[curr_ind:(curr_ind + nvert - 1)]
+        curr_ind += nvert
+        for (i, j, k) in combinations(simp, 3)
+            # SKIP if any duplicates
+            if i == j || i == k || j == k; continue; end
+            # SKIP if 0-simplex is missing
+            if max(i, j, k) > n || any(is_new_node[[i, j, k]]); continue; end
+            # SKIP if already closed
+            if triangle_closed(A_old, A_old_t, simp_order, i, j, k); continue; end
+            # SKIP if we have already looked at this triangle
+            tri_key = sorted_tuple(i, j, k)
+            if tri_key in new_triangles; continue; end
+            # Newly closed triangle
+            push!(new_triangles, tri_key)
+        end
+    end
+
+    return new_triangles
+end
+
+function enum_open_triangles(simplices::Vector{Int64}, nverts::Vector{Int64})
+    A, At, B = basic_matrices(simplices, nverts)
+    simp_order = simplex_degree_order(At)
+    tri_order = proj_graph_degree_order(B)
+    n = size(B, 2)
+
+    nthreads = Threads.nthreads()
+    triangles = Vector{Vector{NTuple{3,Int64}}}(nthreads)
+    for i in 1:nthreads; triangles[i] = Vector{NTuple{3,Int64}}(); end
+
+    # Shuffle so that data better distributes over threads
+    shuffled_inds = shuffle(collect(1:n))
+    Threads.@threads for ii = 1:length(shuffled_inds)
+        tid = Threads.threadid()
+        i = shuffled_inds[ii]
+        for (j, k) in neighbor_pairs(B, tri_order, i)
+            if B[j, k] > 0 && !triangle_closed(A, At, simp_order, i, j, k)                
+                push!(triangles[tid], (i, j, k))
+            end
+        end
+    end
+
+    # Combine arrays
+    total = sum([length(ti) for ti in triangles])
+    combined_triangles = Vector{NTuple{3,Int64}}(total)
+    curr_ind = 1
+    for i in 1:nthreads
+        size = length(triangles[i])
+        combined_triangles[curr_ind:(curr_ind + size - 1)] = triangles[i][:]
+        curr_ind += size
+    end
+    return combined_triangles
+end
+
+""" Turns 3 integers into a sorted tuple. """
 sorted_tuple(a::Int64, b::Int64, c::Int64) =
     NTuple{3, Int64}(sort([a, b, c], alg=InsertionSort))
+""" Turns 4 integers into a sorted tuple. """
 sorted_tuple(a::Int64, b::Int64, c::Int64, d::Int64) =
     NTuple{4, Int64}(sort([a, b, c, d], alg=InsertionSort))
-
-function read_txt_data(dataset::String)
-    read(filename::String) = convert(Vector{Int64}, readdlm(filename, Int64)[:, 1])
-    return HONData(read("data/$(dataset)/$(dataset)-simplices.txt"),
-                   read("data/$(dataset)/$(dataset)-nverts.txt"),
-                   read("data/$(dataset)/$(dataset)-times.txt"),
-                   dataset)
-end
-
-function read_node_labels(dataset::String)
-    if dataset[end-2:end] == "-25"
-        dataset = dataset[1:end-3]
-    end
-    labels = Vector{String}()
-    open("data/$(dataset)/$(dataset)-node-labels.txt") do f
-        for line in eachline(f)
-            push!(labels, join(split(line)[2:end], " "))
-        end
-    end
-    return labels
-end
-
-function read_simplex_labels(dataset::String)
-    if dataset[end-2:end] == "-25"
-        dataset = dataset[1:end-3]
-    end
-    labels = Vector{String}()
-    open("data/$(dataset)/$(dataset)-simplex-labels.txt") do f
-        for line in eachline(f)
-            push!(labels, join(split(line)[2:end], " "))
-        end
-    end
-    return labels
-end
-
-function read_closure_stats(dataset::AbstractString, simplex_size::Int64, initial_cutoff::Int64=100)
-    keys = []
-    probs, nsamples, nclosed = Float64[], Int64[], Int64[]
-    data = readdlm("output/$(dataset)-$(simplex_size)-node-closures.txt")
-    if initial_cutoff < 100
-        data = readdlm("output/$(dataset)-$(simplex_size)-node-closures-$(initial_cutoff).txt")
-    end
-    for row_ind in 1:size(data, 1)
-        row = convert(Vector{Int64}, data[row_ind, :])
-        push!(keys, (row[1:simplex_size]...))
-        push!(nsamples, row[end - 1])
-        push!(nclosed, row[end])
-    end
-    return (keys, nsamples, nclosed)
-end
 
 function bipartite_graph(simplices::Vector{Int64}, nverts::Vector{Int64})
     if length(simplices) == 0
@@ -183,6 +205,23 @@ function bipartite_graph(simplices::Vector{Int64}, nverts::Vector{Int64})
     return convert(SpIntMat, sparse(I, J, ones(length(I)), maximum(simplices), length(nverts)))
 end
 
+"""
+basic_matrices
+--------------
+
+Computes some simple matrices associated with a dataset.
+
+basic_matrices(simplices::Vector{Int64}, nverts::Vector{Int64})
+
+Input parameters:
+- simplices::Vector{Int64}: the contiguous vector of simplices
+- nverts::Vector{Int64}: the vector of sizes of simplices
+
+Outputs tuple (A, At, B):
+- A::SpIntMat: (# nodes) x (# simplices) adjacency matrix
+- At::SpIntMat: the transpose of A
+- B::SpIntMat: Projected graph as a Sparse integer matrix, where B[i, j] is the number of times that i and j co-appear in a simplex.
+"""
 function basic_matrices(simplices::Vector{Int64}, nverts::Vector{Int64})
     A = bipartite_graph(simplices, nverts)
     At = A'
@@ -190,6 +229,23 @@ function basic_matrices(simplices::Vector{Int64}, nverts::Vector{Int64})
     B -= spdiagm(diag(B))  # projected graph (no diagonal)
     return (A, At, B)
 end
+
+"""
+basic_matrices
+--------------
+
+Computes some simple matrices associated with a dataset.
+
+basic_matrices(dataset::HONData)
+
+Input parameter:
+- dataset::HONData: the dataset
+
+Outputs tuple (A, At, B):
+- A::SpIntMat: (# nodes) x (# simplices) adjacency matrix
+- At::SpIntMat: the transpose of A
+- B::SpIntMat: Projected graph as a Sparse integer matrix, where B[i, j] is the number of times that i and j co-appear in a simplex.
+"""
 basic_matrices(dataset::HONData) =
     basic_matrices(dataset.simplices, dataset.nverts)
 
@@ -262,6 +318,24 @@ function num_open_closed_triangles(A::SpIntMat, At::SpIntMat, B::SpIntMat)
     end
     return (sum(counts, 2)...)
 end
+
+"""
+num_open_closed_triangles
+-------------------------
+
+Computes the number of open and closed triangles in a dataset.
+
+num_open_closed_triangles(data::HONData)
+
+Input parameter:
+- data::HONData: the dataset
+
+Outputs tuple (no, nc):
+- no: number of open triangles
+- nc: number of closed triangles
+"""
+num_open_closed_triangles(data::HONData) =
+    num_open_closed_triangles(basic_matrices(data)...)
 
 # Get the subset of data in interval [start_time, end_time]
 function window_data(start_time::Int64, end_time::Int64, simplices::Vector{Int64},
@@ -388,39 +462,8 @@ function configuration_sizes_preserved(simplices::Vector{Int64},
             append!(inds, capp[ind]:(capp[ind] + val  - 1))
             cnt += 1
         end
-        # TODO(arbenson): this isn't creating a simple graph necessarily
+        # TODO(arb): this isn't necessarily creating a simple graph
         config[inds] = shuffle(simplices[inds])
     end
     return config
 end
-
-# This is just a convenient wrapper around all of the formatting parameters for
-# making plots.
-function all_datasets_plot_params()
-    green  = "#1b9e77"
-    orange = "#d95f02"
-    purple = "#7570b3"
-    plot_params = [["coauth-DBLP-25",            "coauth-DBLP",            "x", green],
-                   ["coauth-MAG-Geology-25",     "coauth-MAG-Geology",     "x", orange],
-                   ["coauth-MAG-History-25",     "coauth-MAG-History",     "x", purple],
-                   ["music-rap-genius-25",       "music-rap-genius",       "v", green],
-                   ["tags-stack-overflow",       "tags-stack-overflow",    "s", green],
-                   ["tags-math-sx",              "tags-math-sx",           "s", orange],
-                   ["tags-ask-ubuntu",           "tags-ask-ubuntu",        "s", purple],
-                   ["threads-stack-overflow-25", "threads-stack-overflow", "o", green],
-                   ["threads-math-sx",           "threads-math-sx",        "o", orange],
-                   ["threads-ask-ubuntu",        "threads-ask-ubuntu",     "o", purple],
-                   ["NDC-substances-25",         "NDC-substances",         "<", green],
-                   ["NDC-classes-25",            "NDC-classes",            "<", orange],
-                   ["DAWN",                      "DAWN",                   "p", green],
-                   ["congress-bills-25",         "congress-bills",         "*", green],
-                   ["congress-committees-25",    "congress-committees",    "*", orange],
-                   ["email-Eu-25",               "email-Eu",               "P", green],
-                   ["email-Enron-25",            "email-Enron",            "P", orange],
-                   ["contact-high-school",       "contact-high-school",    "d", green],
-                   ["contact-primary-school",    "contact-primary-school", "d", orange],
-                   ]
-    return plot_params
-end
-
-

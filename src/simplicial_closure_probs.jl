@@ -1,4 +1,9 @@
 export closure_type_counts3, closure_type_counts4
+export open_types3, open_types4
+export STRONG, WEAK, OPEN, simplex_key3, simplex_key4
+export newly_closed_types3, newly_closed_types4
+export initialize_type_counter3, initialize_type_counter4
+export triangle_counts
 
 const STRONG = 2
 const WEAK   = 1
@@ -40,12 +45,6 @@ function initialize_type_counter4()
     return type_counts
 end
 
-# Counts the number of times each simplicial triangle appears in the data. This
-# function is expensive and requires storage on the order of the number of
-# triangles.
-#
-# Returns a counter that takes a sorted triple of indices as a key and returns
-# the count of that triangle.
 function triangle_counts(simplices::Vector{Int64}, nverts::Vector{Int64})
     counts = counter(NTuple{3, Int64})
     curr_ind = 1
@@ -59,6 +58,24 @@ function triangle_counts(simplices::Vector{Int64}, nverts::Vector{Int64})
     end
     return counts
 end
+
+"""
+triangle_counts
+---------------
+
+Counts the number of times each simplicial triangle appears in the data. This
+function is expensive and requires storage on the order of the number of
+triangles. Returns a counter that takes a sorted triple of indices as a key and
+returns the count of that triangle.
+
+triangle_counts(data::HONData)
+
+Input parameters:
+- data::HONData: The data.
+"""
+triangle_counts(data::HONData) =
+    triangle_counts(data.simplices, data.nverts)
+
 
 # Determine the type of every newly closed 4-node simplex.
 function newly_closed_types4(old_simplices::Vector{Int64}, old_nverts::Vector{Int64},

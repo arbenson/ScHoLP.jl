@@ -1,4 +1,4 @@
-export Simplicial_PPR3_decomposed, Simplicial_PPR3_combined
+export Simplicial_PPR3_decomposed, Simplicial_PPR3_combined, grad_and_curl
 
 # Linear operator form of the Simplicial PageRank operator
 function SimplicialPROperator(grad::SpIntMat, curl::SpIntMat, α::Float64)
@@ -14,7 +14,24 @@ function SimplicialPROperator(grad::SpIntMat, curl::SpIntMat, α::Float64)
     return (1 - α / 2) * opEye(size(H,1)) + (α / 2) * H
 end
 
-# Construct the gradient and curl operators for the Hodge Laplacian
+"""
+grad_and_curl
+-------------
+
+Construct the gradient and curl operators.
+
+grad_and_curl(A::SpIntMat, At::SpIntMat, B::SpIntMat)
+
+Input parameters:
+- A::SpIntMat: (# nodes) x (# simplices) adjacency matrix
+- At::SpIntMat: the transpose of A
+- B::SpIntMat: Projected graph as a Sparse integer matrix, where B[i, j] is the number of times that i and j co-appear in a simplex.
+
+returns tuple (grad, curl, edge_map):
+- grad::SpIntMat: gradient operator (as a matrix)
+- curl::SpIntMat: curl operator (as a matrix)
+- edge_map::Dict{NTuple{2,Int64}, Int64}: maps an a sorted edge tuple to an index for the matrices
+"""
 function grad_and_curl(A::SpIntMat, At::SpIntMat, B::SpIntMat)
     # Gradient
     edge_map = Dict{NTuple{2, Int64}, Int64}()
