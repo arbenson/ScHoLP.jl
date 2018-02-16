@@ -18,6 +18,6 @@ include("temporal_asynchronicity.jl")
 # Triangle prediction
 include("walk_scores.jl")
 include("local_scores.jl")
-
+include("simplicial_ppr_scores.jl")
 
 end # module
