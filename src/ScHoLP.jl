@@ -1,5 +1,19 @@
 module ScHoLP
 
-# package code goes here
+using Base.Threads
+using Combinatorics
+using DataStructures
+using StatsBase
+
+include("common.jl")
+
+export closure_type_counts3, closure_type_counts4
+include("simplicial_closure_probs.jl")
+
+export summary_statistics, basic_summary_statistics
+include("summary_statistics.jl")
+
+export interval_overlaps
+include("temporal_asynchronicity.jl")
 
 end # module
