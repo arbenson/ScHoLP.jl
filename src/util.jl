@@ -1,8 +1,7 @@
-export HONData, SpIntMat, SpFltMat
+export HONData, SpIntMat, SpFltMat, example_dataset
 export NbrSetMap, common_neighbors_map
-export basic_matrices, num_open_closed_triangles, sorted_tuple
-export enum_open_triangles, new_closures
-export example_dataset
+export basic_matrices, num_open_closed_triangles, sorted_tuple, enum_open_triangles, new_closures
+export split_data
 
 """
 example_dataset
@@ -361,7 +360,7 @@ Outputs tuple (no, nc):
 num_open_closed_triangles(data::HONData) =
     num_open_closed_triangles(basic_matrices(data)...)
 
-# Get the subset of data in interval [start_time, end_time]
+# Get events in the [start_time, end_time] interval
 function window_data(start_time::Int64, end_time::Int64, simplices::Vector{Int64},
                      nverts::Vector{Int64}, times::Vector{Int64})
     curr_ind = 1
@@ -378,21 +377,44 @@ function window_data(start_time::Int64, end_time::Int64, simplices::Vector{Int64
     return (window_simplices, window_nverts, window_times)
 end
 
-# Split data by timestamps into quantiles specified by percentile1 and
-# percentile2. Returns a 4-tuple (old_simps, old_nverts, new_simps, new_nverts),
-# where (old_simps, old_nverts) are the data in the quantile [0, percentile1]
-# and (new_simps, new_nverts) are the data in the quantile (percentile1, percentile2].
-function split_data(simplices::Vector{Int64}, nverts::Vector{Int64},
-                    times::Vector{Int64}, percentile1::Int64,
-                    percentile2::Int64)
-    assert(percentile1 <= percentile2)
-    cutoff(prcntl::Int64) = convert(Int64, round(percentile(times, prcntl)))
+"""
+split_data
+----------
 
-    cutoff1 = cutoff(percentile1)
+Split data by timestamps into quantiles specified by quantile1 and
+quantile2. Returns a 4-tuple (old_simps, old_nverts, new_simps, new_nverts),
+where (old_simps, old_nverts) are the data in the quantile [0, quantile1]
+and (new_simps, new_nverts) are the data in the quantile (quantile1, quantile2].
+
+split_data(simplices::Vector{Int64}, nverts::Vector{Int64},
+           times::Vector{Int64}, quantile1::Int64,
+           quantile2::Int64)
+
+
+Input parameters:
+- simplices::Vector{Int64}: contiguous vector of simplices from dataset
+- nverts::Vector{Int64}: vector of simplex sizes from dataset
+- times::Vector{Int64}: vector of timestamps of simplices
+- quantile1::Int64: first quantile
+- quantile2::Int64: second quantile
+
+Returns a tuple (old_simps, old_nverts, new_simps, new_nverts):
+- old_simplices::Vector{Int64}: simplices in quantile1
+- old_nverts::Vector{Int64}: sizes of simplices in old_simplices
+- new_simplices::Vector{Int64}: simplices between quantile1 and quantile 2
+- new_nverts::Vector{Int64}: sizes of simplices in new_simplices
+"""
+function split_data(simplices::Vector{Int64}, nverts::Vector{Int64},
+                    times::Vector{Int64}, quantile1::Int64,
+                    quantile2::Int64)
+    assert(quantile1 <= quantile2)
+    cutoff(prcntl::Int64) = convert(Int64, round(quantile(times, prcntl)))
+
+    cutoff1 = cutoff(quantile1)
     old_simps, old_nverts =
         window_data(minimum(times), cutoff1, simplices, nverts, times)[1:2]
 
-    cutoff2 = (percentile2 == 100) ? (maximum(times) + 1) : cutoff(percentile2)
+    cutoff2 = (quantile2 == 100) ? (maximum(times) + 1) : cutoff(quantile2)
     new_simps, new_nverts =
         window_data(cutoff1 + 1, cutoff2, simplices, nverts, times)[1:2]
 
