@@ -2,16 +2,9 @@ using ScHoLP
 using Base.Test
 using Combinatorics
 
-function read_data(dataset::String)
-    read(filename::String) = convert(Vector{Int64}, readdlm(filename, Int64)[:, 1])
-    return HONData(read("../data/$(dataset)/$(dataset)-simplices.txt"),
-                   read("../data/$(dataset)/$(dataset)-nverts.txt"),
-                   read("../data/$(dataset)/$(dataset)-times.txt"),
-                   dataset)
-end
 
 function test_projected_graph()
-    data = read_data("example1")
+    data = example_dataset("example1")
     simplices, nverts = data.simplices, data.nverts
     B = basic_matrices(simplices, nverts)[3]
     
@@ -39,7 +32,7 @@ end
 function test_basic_matrices()
     for dataset in ["example1", "example2", "email-Enron", "contact-high-school"]
         println("$dataset")
-        data = read_data(dataset)
+        data = example_dataset(dataset)
         simplices, nverts = data.simplices, data.nverts
         A, At, B = basic_matrices(simplices, nverts)
         @test nnz(A) == length(simplices)
@@ -63,7 +56,7 @@ end
 
 function test_open_closed_triangles1()
     for dataset in ["example1", "example2", "email-Enron", "contact-high-school"]
-        data = read_data(dataset)
+        data = example_dataset(dataset)
         simplices, nverts = data.simplices, data.nverts
         
         # Using internal implementation
@@ -141,7 +134,7 @@ function test_open_closed_triangles2()
     append!(nverts,    [4         ])
     check(simplices, nverts, 0, 4)
 
-    data = read_data("example1")
+    data = example_dataset("example1")
     simplices, nverts = data.simplices, data.nverts
     check(simplices, nverts, 1, 7)
 end
@@ -184,7 +177,7 @@ end
 function test_closure_counts2()
     for dataset in ["example1", "example2", "email-Enron"]
         println("$dataset...")        
-        data = read_data("example1")
+        data = example_dataset("example1")
         simplices, nverts = data.simplices, data.nverts
         open_counts3 = open_types3(simplices, nverts)
         open_counts4 = open_types4(simplices, nverts)
@@ -270,7 +263,7 @@ function test_closure_counts3()
     
     for dataset in ["example1", "example2", "email-Enron", "contact-primary-school"]
         println("$dataset...")
-        data = read_data("example1")
+        data = example_dataset("example1")
         simplices, nverts = data.simplices, data.nverts
         test_equivalent_counters(open_types3_naive(simplices, nverts),
                                  open_types3(simplices, nverts))
@@ -300,7 +293,7 @@ function test_simplicial_closure()
 end
 
 function test_new_closures()
-    data = read_data("example1")
+    data = example_dataset("example1")
     simplices, nverts = data.simplices, data.nverts
     old_simplices, old_nverts = Int64[], Int64[]
     new_tris = new_closures(old_simplices, old_nverts, simplices, nverts)
@@ -312,7 +305,7 @@ function test_new_closures()
 end
 
 function test_enum_open_triangles()
-    data = read_data("example1")
+    data = example_dataset("example1")
     simplices, nverts = data.simplices, data.nverts
     tris = enum_open_triangles(simplices, nverts)
     @test length(tris) == 1
@@ -320,7 +313,7 @@ function test_enum_open_triangles()
 end
 
 function test_common_neighbor_map()
-    data = read_data("example1")
+    data = example_dataset("example1")
     simplices, nverts = data.simplices, data.nverts
     tris = enum_open_triangles(simplices, nverts)
     A, At, B = basic_matrices(simplices, nverts)
@@ -331,7 +324,7 @@ function test_common_neighbor_map()
 end
 
 function test_grad_and_curl()
-    data = read_data("example1")
+    data = example_dataset("example1")
     simplices, nverts = data.simplices, data.nverts
     A, At, B = basic_matrices(simplices, nverts)
     grad, curl, edge_map = grad_and_curl(A, At, B)
@@ -368,7 +361,7 @@ function test_grad_and_curl()
 end
 
 function test_score_functions()
-    data = read_data("example1")
+    data = example_dataset("example1")
     simplices, nverts = data.simplices, data.nverts
     tris = enum_open_triangles(simplices, nverts)
     @test length(tris) == 1

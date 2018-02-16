@@ -2,6 +2,30 @@ export HONData, SpIntMat, SpFltMat
 export NbrSetMap, common_neighbors_map
 export basic_matrices, num_open_closed_triangles, sorted_tuple
 export enum_open_triangles, new_closures
+export example_dataset
+
+"""
+example_dataset
+---------------
+
+Returns one of the example datasets.
+
+example_dataset(dataset::String)
+
+Input parameter:
+- dataset::String: one of "email-Enron", "contact-primary-school", "contact-high-school", "example1", or "example2"
+
+"""
+function example_dataset(dataset::String)
+    if !(dataset in ["email-Enron", "contact-primary-school", "contact-high-school", "example1", "example2"])
+        error("Unknown dataset $dataset")
+    end
+    read(filename::String) = convert(Vector{Int64}, readdlm(filename, Int64)[:, 1])
+    return HONData(read("../data/$(dataset)/$(dataset)-simplices.txt"),
+                   read("../data/$(dataset)/$(dataset)-nverts.txt"),
+                   read("../data/$(dataset)/$(dataset)-times.txt"),
+                   dataset)
+end
 
 """
 SpIntMat
