@@ -24,7 +24,10 @@ function iterative_solve(M::SpFltMat, triangles::Vector{NTuple{3,Int64}})
     end
     Threads.@threads for ind = 1:length(shuffled_inds)
         tid = Threads.threadid()
-        if tid == 1; println("$(ind) of $(length(shuffled_inds))"); end
+        if tid == 1
+            print("$(ind) of $(length(shuffled_inds)) \r")
+            flush(STDOUT)
+        end
         node = shuffled_inds[ind]
         b = zeros(n)
         b[node] = 1
