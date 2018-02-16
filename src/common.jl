@@ -1,6 +1,29 @@
 const SpIntMat = SparseMatrixCSC{Int64,Int64}
 const SpFltMat = SparseMatrixCSC{Float64,Int64}
 
+"""
+HONData
+-------
+
+Data structure for a temporal higher-order network.
+
+Each dataset consists of three integer vectors: simplices, nverts, and times. 
+- The simplices is a contiguous vector of nodes comprising the simplices. 
+- The nverts vector contains the number of vertices within each simplex. 
+- The times vector contains the timestamps of the simplices (same length as nverts).
+
+For example, consider a dataset consisting of three simplices:
+
+    1. {1, 2, 3} at time 10
+    2. {2, 4} at time 15.
+    3. {1, 3, 4, 5} at time 21.
+
+Then the data structure would be
+- simplices = [1, 2, 3, 2, 4, 1, 3, 4, 5]
+- nverts = [3, 2, 4]
+- times = [10, 15, 21]
+There is an additional name variable attached to the dataset.
+"""
 immutable HONData
     simplices::Vector{Int64}
     nverts::Vector{Int64}

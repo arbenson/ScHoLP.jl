@@ -5,6 +5,7 @@ using Combinatorics
 using DataStructures
 using StatsBase
 
+export HONData
 include("common.jl")
 
 export closure_type_counts3, closure_type_counts4
