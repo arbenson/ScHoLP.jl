@@ -19,10 +19,11 @@ function example_dataset(dataset::String)
     if !(dataset in ["email-Enron", "contact-primary-school", "contact-high-school", "example1", "example2"])
         error("Unknown dataset $dataset")
     end
+    dir = joinpath(dirname(dirname(@__FILE__)),"data")
     read(filename::String) = convert(Vector{Int64}, readdlm(filename, Int64)[:, 1])
-    return HONData(read("../data/$(dataset)/$(dataset)-simplices.txt"),
-                   read("../data/$(dataset)/$(dataset)-nverts.txt"),
-                   read("../data/$(dataset)/$(dataset)-times.txt"),
+    return HONData(read("$(dir)/$(dataset)/$(dataset)-simplices.txt"),
+                   read("$(dir)/$(dataset)/$(dataset)-nverts.txt"),
+                   read("$(dir)/$(dataset)/$(dataset)-times.txt"),
                    dataset)
 end
 
