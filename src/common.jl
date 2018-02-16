@@ -1,6 +1,13 @@
 const SpIntMat = SparseMatrixCSC{Int64,Int64}
 const SpFltMat = SparseMatrixCSC{Float64,Int64}
 
+immutable HONData
+    simplices::Vector{Int64}
+    nverts::Vector{Int64}
+    times::Vector{Int64}
+    name::String
+end
+
 sorted_tuple(a::Int64, b::Int64, c::Int64) =
     NTuple{3, Int64}(sort([a, b, c], alg=InsertionSort))
 sorted_tuple(a::Int64, b::Int64, c::Int64, d::Int64) =
@@ -8,9 +15,10 @@ sorted_tuple(a::Int64, b::Int64, c::Int64, d::Int64) =
 
 function read_txt_data(dataset::String)
     read(filename::String) = convert(Vector{Int64}, readdlm(filename, Int64)[:, 1])
-    return (read("data/$(dataset)/$(dataset)-simplices.txt"),
-            read("data/$(dataset)/$(dataset)-nverts.txt"),
-            read("data/$(dataset)/$(dataset)-times.txt"))
+    return HONData(read("data/$(dataset)/$(dataset)-simplices.txt"),
+                   read("data/$(dataset)/$(dataset)-nverts.txt"),
+                   read("data/$(dataset)/$(dataset)-times.txt"),
+                   dataset)
 end
 
 function read_node_labels(dataset::String)
@@ -78,6 +86,8 @@ function basic_matrices(simplices::Vector{Int64}, nverts::Vector{Int64})
     B -= spdiagm(diag(B))  # projected graph (no diagonal)
     return (A, At, B)
 end
+basic_matrices(dataset::HONData) =
+    basic_matrices(dataset.simplices, dataset.nverts)
 
 nz_row_inds(A::SpIntMat, ind::Int64) = A.rowval[A.colptr[ind]:(A.colptr[ind + 1] - 1)]
 nz_row_inds(A::SpFltMat, ind::Int64) = A.rowval[A.colptr[ind]:(A.colptr[ind + 1] - 1)]

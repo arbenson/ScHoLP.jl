@@ -460,6 +460,44 @@ end
 closure_type_counts3
 --------------------
 
+closure_type_counts3(dataset::HONData, initial_cutoff::Int64=100)
+
+Computes the closure probabilities of all 3-node configurations. The closure
+probability is the fraction of instances of open configurations appearing in the
+first 80% of the timestamped simplices that appear in a simplex in the final
+20%.
+
+dataset::HONData
+    The network data.
+
+initial_cutoff::Int64=100
+    Initial cutoff of the simplices. If this is sent to something less
+    than 100, then the data is first preprocessed to only consider
+    the first initial_cutoff percentage of the data.
+"""
+function closure_type_counts3(dataset::HONData, initial_cutoff::Int64=100)
+    simps = dataset.simplices
+    nverts = dataset.nverts
+    times = dataset.times
+    if initial_cutoff < 100
+        cutoff_percentile = convert(Int64, round(percentile(times, initial_cutoff)))
+        simps, nverts, times = window_data(minimum(times), cutoff_percentile,
+                                           simps, nverts, times)
+                                           
+    end
+    old_simps, old_nverts, new_simps, new_nverts =
+        split_data(simps, nverts, times, 80, 100)
+    closed_type_counts =
+        newly_closed_types3(old_simps, old_nverts, new_simps, new_nverts)
+    open_type_counts = open_types3(old_simps, old_nverts)
+    type_counts = [(k..., cnt, closed_type_counts[k]) for (k, cnt) in open_type_counts]
+    writedlm("$(dataset.name)-3-node-closures-$(initial_cutoff).txt", sort(type_counts))
+end
+
+"""
+closure_type_counts3
+--------------------
+
 closure_type_counts3(dataset::String, initial_cutoff::Int64=100)
 
 Computes the closure probabilities of all 3-node configurations. The closure
@@ -475,8 +513,32 @@ initial_cutoff::Int64=100
     than 100, then the data is first preprocessed to only consider
     the first initial_cutoff percentage of the data.
 """
-function closure_type_counts3(dataset::String, initial_cutoff::Int64=100)
-    simps, nverts, times = read_txt_data(dataset)
+closure_type_counts3(dataset::String, initial_cutoff::Int64=100) =
+    closure_type_counts3(read_txt_data(dataset), initial_cutoff)
+
+"""
+closure_type_counts4
+--------------------
+
+closure_type_counts4(dataset::HONData, initial_cutoff::Int64=100)
+
+Computes the closure probabilities of all 4-node configurations that contain at
+least one triangle. The closure probability is the fraction of instances of open
+configurations appearing in the first 80% of the timestamped simplices that
+appear in a simplex in the final 20%.
+
+dataset::HONData
+    The dataset.
+
+initial_cutoff::Int64=100
+    Initial cutoff of the simplices. If this is sent to something less
+    than 100, then the data is first preprocessed to only consider
+    the first initial_cutoff percentage of the data. 
+"""
+function closure_type_counts4(dataset::HONData, initial_cutoff::Int64=100)
+    simps  = dataset.simplices
+    nverts = dataset.nverts
+    times  = dataset.times
     if initial_cutoff < 100
         cutoff_percentile = convert(Int64, round(percentile(times, initial_cutoff)))
         simps, nverts, times = window_data(minimum(times), cutoff_percentile,
@@ -486,10 +548,10 @@ function closure_type_counts3(dataset::String, initial_cutoff::Int64=100)
     old_simps, old_nverts, new_simps, new_nverts =
         split_data(simps, nverts, times, 80, 100)
     closed_type_counts =
-        newly_closed_types3(old_simps, old_nverts, new_simps, new_nverts)
-    open_type_counts = open_types3(old_simps, old_nverts)
-    type_counts = [(k..., cnt, closed_type_counts[k]) for (k, cnt) in open_type_counts]
-    writedlm("$(dataset)-3-node-closures-$(initial_cutoff).txt", sort(type_counts))
+        newly_closed_types4(old_simps, old_nverts, new_simps, new_nverts)
+    open_type_counts = open_types4(old_simps, old_nverts)
+    type_counts = [(k..., cnt, closed_type_counts[k]) for (k, cnt) in open_type_counts]    
+    writedlm("$(dataset.name)-4-node-closures-$(initial_cutoff).txt", sort(type_counts))
 end
 
 """
@@ -511,19 +573,5 @@ initial_cutoff::Int64=100
     than 100, then the data is first preprocessed to only consider
     the first initial_cutoff percentage of the data. 
 """
-function closure_type_counts4(dataset::String, initial_cutoff::Int64=100)
-    simps, nverts, times = read_txt_data(dataset)
-    if initial_cutoff < 100
-        cutoff_percentile = convert(Int64, round(percentile(times, initial_cutoff)))
-        simps, nverts, times = window_data(minimum(times), cutoff_percentile,
-                                           simps, nverts, times)
-                                           
-    end
-    old_simps, old_nverts, new_simps, new_nverts =
-        split_data(simps, nverts, times, 80, 100)
-    closed_type_counts =
-        newly_closed_types4(old_simps, old_nverts, new_simps, new_nverts)
-    open_type_counts = open_types4(old_simps, old_nverts)
-    type_counts = [(k..., cnt, closed_type_counts[k]) for (k, cnt) in open_type_counts]    
-    writedlm("$(dataset)-4-node-closures-$(initial_cutoff).txt", sort(type_counts))
-end
+closure_type_counts4(dataset::String, initial_cutoff::Int64=100) =
+    closure_type_counts4(read_txt_data(dataset), initial_cutoff)

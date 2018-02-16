@@ -2,14 +2,14 @@
 summary_statistics
 ------------------------
 
-summary_statistics(dataset::String)
+summary_statistics(dataset::HONData)
 
 Computes several statistics about the dataset.
 
-dataset::String
-    The dataset name.
+dataset::HONData
+    The dataset.
 """
-function summary_statistics(dataset::String)
+function summary_statistics(dataset::HONData)
     function _summary_statistics(simplices::Vector{Int64}, nverts::Vector{Int64}, times::Vector{Int64})
         if length(nverts) == 0
             return ("0,0,0,0,0,0.0,0.0,0,0,0,0,0.0,0.0,0.0,0.0,0,0")
@@ -39,22 +39,59 @@ function summary_statistics(dataset::String)
                         mean(nonzeros(B)), density, nc, no)
         return "$str1,$str2,$str3"
     end
-        
-    open("$dataset-statistics.csv", "w") do f
+
+    dataset_name = dataset.name
+    open("$(dataset_name)-statistics.csv", "w") do f
         write(f, "dataset,")
         write(f, "nnodes,nsimps,nconns,meansimpsize,maxsimpsize,meanprojweight,projdensity,nclosedtri,nopentri,")
         write(f, "nbbnodes,nbbconns,meanbbsimpsize,meanbbprojweight,")
         write(f, "meanbbconfigweight,bbconfigdensity,nbbconfigclosedtri,nbbconfigopentri\n")
-        simplices, nverts, times = read_txt_data(dataset)
+        simplices, nverts, times = dataset.simplices, dataset.nverts, dataset.times
         stats = _summary_statistics(simplices, nverts, times)
-        write(f, "$dataset,$stats\n")
+        write(f, "$(dataset_name),$stats\n")
 
         # Get the same statistics but for the dataset restricted to 3-node
         # simplices.
         csimplices, cnverts, ctimes = data_size_cutoff(simplices, nverts, times, 3, 3)
         stats = _summary_statistics(csimplices, cnverts, ctimes)
-        write(f, "$dataset-3-3,$stats\n")
+        write(f, "$(dataset_name)-3-3,$stats\n")
     end
+end
+
+"""
+summary_statistics
+------------------------
+
+summary_statistics(dataset::String)
+
+Computes several statistics about the dataset.
+
+dataset::String
+    The dataset name.
+"""
+summary_statistics(dataset::String) = summary_statistics(read_txt_data(dataset))
+
+"""
+basic_summary_statistics
+------------------------
+
+basic_summary_statistics(dataset::String)
+
+Prints some basic summary statistics of the dataset.
+
+dataset::HONData
+    The dataset.
+"""
+function basic_summary_statistics(dataset::HONData)
+    simplices, nverts, times = dataset.simplices, dataset.nverts, dataset.times
+    bb_simplices, bb_nverts, bb_times = backbone(simplices, nverts, times)
+    A, At, B = basic_matrices(simplices, nverts)
+    num_nodes = sum(sum(At, 1) .> 0)
+    num_edges = nnz(B) / 2
+    num_simps = length(nverts)
+    num_bb_simps = length(bb_nverts)
+    println("dataset & # nodes & # edges in proj. graph & # simplices & # unique simplices")
+    println(@sprintf("%s & %d & %d & %d & %d", dataset.name, num_nodes, num_edges, num_simps, num_bb_simps))
 end
 
 """
@@ -68,15 +105,5 @@ Prints some basic summary statistics of the dataset.
 dataset::String
     The dataset name.
 """
-function basic_summary_statistics(dataset::String)
-    params = all_datasets_plot_params()
-    simplices, nverts, times = read_txt_data(dataset)
-    bb_simplices, bb_nverts, bb_times = backbone(simplices, nverts, times)        
-    A, At, B = basic_matrices(simplices, nverts)
-    num_nodes = sum(sum(At, 1) .> 0)
-    num_edges = nnz(B) / 2
-    num_simps = length(nverts)
-    num_bb_simps = length(bb_nverts)
-    println("dataset & # nodes & # edges in proj. graph & # simplices & # unique simplices")
-    println(@sprintf("%s & %d & %d & %d & %d", dataset, num_nodes, num_edges, num_simps, num_bb_simps))
-end
+basic_summary_statistics(dataset::String) =
+    basic_summary_statistics(read_txt_data(dataset))

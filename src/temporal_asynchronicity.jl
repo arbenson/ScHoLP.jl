@@ -1,4 +1,5 @@
-function intervals(simplices::Vector{Int64}, nverts::Vector{Int64}, times::Vector{Int64})
+function intervals(dataset::HONData)
+    simplices, nverts, times = dataset.simplices, dataset.nverts, dataset.times
     I, J, T = Int64[], Int64[], Int64[]
     curr_ind = 1
     for (nv, time) in zip(nverts, times)
@@ -43,17 +44,16 @@ end
 interval_overlaps
 --------------------
 
-interval_overlaps(dataset::String)
+interval_overlaps(dataset::HONData)
 
 Compute the number of active interval overlaps in open triangles.
 
-dataset::String
-    The dataset name.
+dataset::HONData
+    The dataset.
 """
-function interval_overlaps(dataset::String)
-    (simplices, nverts, times) = read_txt_data(dataset)    
-    min_M, max_M = intervals(simplices, nverts, times)
-    A, At, B = basic_matrices(simplices, nverts)
+function interval_overlaps(dataset::HONData)
+    min_M, max_M = intervals(HONData)
+    A, At, B = basic_matrices(dataset)
     simplex_order = simplex_degree_order(At)
     triangle_order = proj_graph_degree_order(B)
     
@@ -83,3 +83,17 @@ function interval_overlaps(dataset::String)
     println("dataset & # open triangles & 0 overlaps & 1 overlap & 2 overlaps & 3 overlaps")
     println(@sprintf("%s & %d & %0.3f & %0.3f & %0.3f & %0.3f", dataset, tot, frac_overlaps...))
 end
+
+"""
+interval_overlaps
+--------------------
+
+interval_overlaps(dataset::String)
+
+Compute the number of active interval overlaps in open triangles.
+
+dataset::String
+    The dataset name.
+"""
+interval_overlaps(dataset::String) =
+    interval_overlaps(read_txt_data(dataset))
