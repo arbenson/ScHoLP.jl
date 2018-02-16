@@ -57,8 +57,8 @@ PKatz3
 
 Compute 3-way personalized Katz scores for triangles.
 
-function PKatz3(triangles::Vector{NTuple{3,Int64}}, B::SpIntMat,
-                unweighted::Bool, dense_solve::Bool=false)
+PKatz3(triangles::Vector{NTuple{3,Int64}}, B::SpIntMat,
+       unweighted::Bool, dense_solve::Bool=false)
 
 Example usage:
 ```

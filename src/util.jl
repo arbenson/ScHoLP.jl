@@ -1,4 +1,4 @@
-export HONData, SpIntMat, SpFltMat
+export HONData, SpIntMat, SpFltMat, NbrSetMap, common_neighbors_map
 
 """
 SpIntMat
@@ -15,6 +15,14 @@ SpFltMat
 const SpFltMat = SparseMatrixCSC{Float64,Int64}
 """
 const SpFltMat = SparseMatrixCSC{Float64,Int64}
+
+"""
+NbrSetMap
+--------
+
+const NbrSetMap = Dict{NTuple{2, Int64}, Set{Int64}}
+"""
+const NbrSetMap = Dict{NTuple{2, Int64}, Set{Int64}}
 
 """
 HONData
@@ -44,6 +52,64 @@ immutable HONData
     nverts::Vector{Int64}
     times::Vector{Int64}
     name::String
+end
+
+""" 
+common_neighbors_map
+-------------------
+
+Construct a map where a key is an edge in the graph B participating in at least
+one triangle of interest and a value is the vector of common neighbors of the
+end points of the edge. The graph B is assumed to be undirected, and the keys
+are ordered by the pair with smallest ID first.
+
+common_neighbors_map(B::SpIntMat, triangles::Vector{NTuple{3,Int64}})
+
+Input parameters:
+- B::SpIntMat: the graph
+- triangles::Vector{NTuple{3,Int64}}: the triangles of interest
+"""
+function common_neighbors_map(B::SpIntMat, triangles::Vector{NTuple{3,Int64}})
+    I = zeros(Int64, 3 * length(triangles))
+    J = zeros(Int64, 3 * length(triangles))
+    Threads.@threads for ind = 1:length(triangles)
+        (i, j, k) = triangles[ind]
+        ran = ((ind - 1) * 3 + 1):(ind * 3)
+        a, b, c = sort([i, j, k], alg=InsertionSort)
+        I[ran] = [a, a, b]
+        J[ran] = [b, c, c]
+    end
+    n = size(B, 2)
+    T = sparse(I, J, ones(length(I)), n, n)
+
+    nthreads = Threads.nthreads()
+    common_nbrs_vec = Vector{NbrSetMap}(nthreads)
+    Threads.@threads for tid = 1:nthreads
+        common_nbrs_vec[tid] = NbrSetMap()
+    end
+    
+    Threads.@threads for j = 1:n
+        tid = Threads.threadid()            
+        if tid == 1
+            print("$j of $n \r")
+            flush(STDOUT)
+        end
+        Bj = Set{Int64}(nz_row_inds(B, j))
+        # only collect data on edges that appear in triangles
+        for i in filter(v -> (v < j) && T[v, j] > 0, Bj)
+            Bi = Set{Int64}(nz_row_inds(B, i))
+            common_nbrs_vec[tid][(i, j)] = intersect(Bi, Bj)
+        end
+    end
+
+    # Combine the maps
+    common_nbrs = common_nbrs_vec[1]
+    for tid = 2:nthreads
+        for (key, val) in common_nbrs_vec[tid]
+            common_nbrs[key] = val
+        end
+    end
+    return common_nbrs
 end
 
 sorted_tuple(a::Int64, b::Int64, c::Int64) =
@@ -356,3 +422,5 @@ function all_datasets_plot_params()
                    ]
     return plot_params
 end
+
+
