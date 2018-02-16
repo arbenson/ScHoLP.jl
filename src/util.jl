@@ -399,7 +399,6 @@ function split_data(simplices::Vector{Int64}, nverts::Vector{Int64},
     return old_simps, old_nverts, new_simps, new_nverts
 end
 
-
 function backbone(simplices::Vector{Int64}, nverts::Vector{Int64},
                   times::Vector{Int64})
     # backbone data
@@ -426,48 +425,6 @@ function backbone(simplices::Vector{Int64}, nverts::Vector{Int64},
     end
 
     return (bb_simplices, bb_nverts, bb_times)
-end
-
-function data_size_cutoff(simplices::Vector{Int64}, nverts::Vector{Int64},
-                          times::Vector{Int64}, min_simplex_size::Int64,
-                          max_simplex_size::Int64)
-    new_simplices = Int64[]
-    new_nverts = Int64[]
-    new_times = Int64[]    
-    curr_ind = 1
-    for (nv, time) in zip(nverts, times)
-        if min_simplex_size <= nv <= max_simplex_size
-            append!(new_simplices, simplices[curr_ind:(curr_ind + nv - 1)])
-            push!(new_nverts, nv)
-            push!(new_times, time)
-        end
-        curr_ind += nv
-    end
-    return (new_simplices, new_nverts, new_times)
-end
-
-function data_size_cutoff(simplices::Vector{Int64}, nverts::Vector{Int64},
-                          times::Vector{Int64}, cutoff::Int64)
-    return data_size_cutoff(simplices, nverts, times, 0, cutoff)
-end
-
-# Get a configuration
-function configuration(simplices::Vector{Int64}, nverts::Vector{Int64})
-    while true
-        config = shuffle(simplices)
-        valid_config = true
-        curr_ind = 1
-        for nv in nverts
-            simplex = config[curr_ind:(curr_ind + nv - 1)]
-            if length(unique(simplex)) != nv
-                # Invalid configuration --> start over
-                valid_config = false
-                break
-            end
-            curr_ind += nv
-        end
-        if valid_config; return config; end
-    end
 end
 
 # Get a configuration that preserves the number of k-vertex simplices that every
