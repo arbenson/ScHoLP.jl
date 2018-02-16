@@ -1,3 +1,5 @@
+export interval_overlaps
+
 function intervals(dataset::HONData)
     simplices, nverts, times = dataset.simplices, dataset.nverts, dataset.times
     I, J, T = Int64[], Int64[], Int64[]

@@ -1,13 +1,15 @@
+export summary_statistics, basic_summary_statistics
+
 """
 summary_statistics
 ------------------------
 
-summary_statistics(dataset::HONData)
-
 Computes several statistics about the dataset.
 
-dataset::HONData
-    The dataset.
+summary_statistics(dataset::HONData)
+
+Input parameter:
+- dataset::HONData: The dataset.
 """
 function summary_statistics(dataset::HONData)
     function _summary_statistics(simplices::Vector{Int64}, nverts::Vector{Int64}, times::Vector{Int64})
@@ -62,12 +64,11 @@ end
 summary_statistics
 ------------------------
 
-summary_statistics(dataset::String)
-
 Computes several statistics about the dataset.
 
-dataset::String
-    The dataset name.
+summary_statistics(dataset::String)
+
+- dataset::String: The dataset name.
 """
 summary_statistics(dataset::String) = summary_statistics(read_txt_data(dataset))
 
@@ -75,12 +76,12 @@ summary_statistics(dataset::String) = summary_statistics(read_txt_data(dataset))
 basic_summary_statistics
 ------------------------
 
-basic_summary_statistics(dataset::String)
-
 Prints some basic summary statistics of the dataset.
 
-dataset::HONData
-    The dataset.
+basic_summary_statistics(dataset::String)
+
+Input parameter:
+- dataset::HONData: The dataset.
 """
 function basic_summary_statistics(dataset::HONData)
     simplices, nverts, times = dataset.simplices, dataset.nverts, dataset.times
@@ -98,12 +99,12 @@ end
 basic_summary_statistics
 ------------------------
 
-basic_summary_statistics(dataset::String)
-
 Prints some basic summary statistics of the dataset.
 
-dataset::String
-    The dataset name.
+basic_summary_statistics(dataset::String)
+
+Input parameter:
+- dataset::String: The dataset name.
 """
 basic_summary_statistics(dataset::String) =
     basic_summary_statistics(read_txt_data(dataset))

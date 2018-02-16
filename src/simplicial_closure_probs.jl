@@ -1,3 +1,5 @@
+export closure_type_counts3, closure_type_counts4
+
 const STRONG = 2
 const WEAK   = 1
 const OPEN   = 0
@@ -460,20 +462,16 @@ end
 closure_type_counts3
 --------------------
 
-closure_type_counts3(dataset::HONData, initial_cutoff::Int64=100)
-
 Computes the closure probabilities of all 3-node configurations. The closure
 probability is the fraction of instances of open configurations appearing in the
 first 80% of the timestamped simplices that appear in a simplex in the final
 20%.
 
-dataset::HONData
-    The network data.
+closure_type_counts3(dataset::HONData, initial_cutoff::Int64=100)
 
-initial_cutoff::Int64=100
-    Initial cutoff of the simplices. If this is sent to something less
-    than 100, then the data is first preprocessed to only consider
-    the first initial_cutoff percentage of the data.
+Input parameters:
+- dataset::String: The dataset name.
+- initial_cutoff::Int64=100: Initial cutoff of the simplices. If this is set to less than 100, then the data is first preprocessed to only consider the first initial_cutoff percentage of the data.
 """
 function closure_type_counts3(dataset::HONData, initial_cutoff::Int64=100)
     simps = dataset.simplices
@@ -498,20 +496,16 @@ end
 closure_type_counts3
 --------------------
 
-closure_type_counts3(dataset::String, initial_cutoff::Int64=100)
-
 Computes the closure probabilities of all 3-node configurations. The closure
 probability is the fraction of instances of open configurations appearing in the
 first 80% of the timestamped simplices that appear in a simplex in the final
 20%.
 
-dataset::String
-    The dataset name.
+closure_type_counts3(dataset::String, initial_cutoff::Int64=100)
 
-initial_cutoff::Int64=100
-    Initial cutoff of the simplices. If this is sent to something less
-    than 100, then the data is first preprocessed to only consider
-    the first initial_cutoff percentage of the data.
+Input parameters:
+- dataset::String: The dataset name.
+- initial_cutoff::Int64=100: Initial cutoff of the simplices. If this is set to less than 100, then the data is first preprocessed to only consider the first initial_cutoff percentage of the data.
 """
 closure_type_counts3(dataset::String, initial_cutoff::Int64=100) =
     closure_type_counts3(read_txt_data(dataset), initial_cutoff)
@@ -520,20 +514,16 @@ closure_type_counts3(dataset::String, initial_cutoff::Int64=100) =
 closure_type_counts4
 --------------------
 
-closure_type_counts4(dataset::HONData, initial_cutoff::Int64=100)
-
 Computes the closure probabilities of all 4-node configurations that contain at
 least one triangle. The closure probability is the fraction of instances of open
 configurations appearing in the first 80% of the timestamped simplices that
 appear in a simplex in the final 20%.
 
-dataset::HONData
-    The dataset.
+closure_type_counts4(dataset::HONData, initial_cutoff::Int64=100)
 
-initial_cutoff::Int64=100
-    Initial cutoff of the simplices. If this is sent to something less
-    than 100, then the data is first preprocessed to only consider
-    the first initial_cutoff percentage of the data. 
+Input parameters:
+- dataset::HONData: The dataset.
+- initial_cutoff::Int64=100: Initial cutoff of the simplices. If this is set to less than 100, then the data is first preprocessed to only consider the first initial_cutoff percentage of the data. 
 """
 function closure_type_counts4(dataset::HONData, initial_cutoff::Int64=100)
     simps  = dataset.simplices
@@ -558,20 +548,16 @@ end
 closure_type_counts4
 --------------------
 
-closure_type_counts4(dataset::String, initial_cutoff::Int64=100)
-
 Computes the closure probabilities of all 4-node configurations that contain at
 least one triangle. The closure probability is the fraction of instances of open
 configurations appearing in the first 80% of the timestamped simplices that
 appear in a simplex in the final 20%.
 
-dataset::String
-    The dataset name.
+closure_type_counts4(dataset::String, initial_cutoff::Int64=100)
 
-initial_cutoff::Int64=100
-    Initial cutoff of the simplices. If this is sent to something less
-    than 100, then the data is first preprocessed to only consider
-    the first initial_cutoff percentage of the data. 
+Input parameters:
+- dataset::String: The dataset name.
+- initial_cutoff::Int64=100: Initial cutoff of the simplices. If this is set to less than 100, then the data is first preprocessed to only consider the first initial_cutoff percentage of the data.
 """
 closure_type_counts4(dataset::String, initial_cutoff::Int64=100) =
     closure_type_counts4(read_txt_data(dataset), initial_cutoff)

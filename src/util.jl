@@ -1,4 +1,19 @@
+export HONData, SpIntMat, SpFltMat
+
+"""
+SpIntMat
+--------
+
+const SpIntMat = SparseMatrixCSC{Float64,Int64}
+"""
 const SpIntMat = SparseMatrixCSC{Int64,Int64}
+
+"""
+SpFltMat
+--------
+
+const SpFltMat = SparseMatrixCSC{Float64,Int64}
+"""
 const SpFltMat = SparseMatrixCSC{Float64,Int64}
 
 """
@@ -18,7 +33,7 @@ For example, consider a dataset consisting of three simplices:
     2. {2, 4} at time 15.
     3. {1, 3, 4, 5} at time 21.
 
-Then the data structure would be
+Then the data structure would be  
 - simplices = [1, 2, 3, 2, 4, 1, 3, 4, 5]
 - nverts = [3, 2, 4]
 - times = [10, 15, 21]
