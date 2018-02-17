@@ -9,8 +9,9 @@ function collect_lifecycles(data::HONData, only_closed::Bool=false)
     simplex_order = simplex_degree_order(At)
     triangle_order = proj_graph_degree_order(B)
 
-    all_events, all_times = Int64[], Int64[]
-    num_events = Int64[], Int64[]
+    all_events = Int64[]
+    all_times = Int64[]
+    num_events = Int64[]
     I, J, K = Int64[], Int64[], Int64[]
 
     for i = 1:size(B, 2)
@@ -163,7 +164,7 @@ function process_lifecycles(data::HONData)
 
     # Get earliest simplex of each node
     A, At, B = basic_matrices(data)
-    earliest_times = earliest_activity(At, times)
+    earliest_times = earliest_activity(At, data.times)
     open_transitions = zeros(Int64, 11, 11)
     open_times = zeros(Int64, 11, 11)
     closed_transitions = zeros(Int64, 11, 11)
