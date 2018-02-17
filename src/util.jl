@@ -391,7 +391,6 @@ split_data(simplices::Vector{Int64}, nverts::Vector{Int64},
            times::Vector{Int64}, quantile1::Int64,
            quantile2::Int64)
 
-
 Input parameters:
 - simplices::Vector{Int64}: contiguous vector of simplices from dataset
 - nverts::Vector{Int64}: vector of simplex sizes from dataset
@@ -409,7 +408,7 @@ function split_data(simplices::Vector{Int64}, nverts::Vector{Int64},
                     times::Vector{Int64}, quantile1::Int64,
                     quantile2::Int64)
     assert(quantile1 <= quantile2)
-    cutoff(prcntl::Int64) = convert(Int64, round(quantile(times, prcntl)))
+    cutoff(prcntl::Int64) = convert(Int64, round(percentile(times, prcntl)))
 
     cutoff1 = cutoff(quantile1)
     old_simps, old_nverts =

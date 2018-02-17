@@ -54,7 +54,7 @@ dataset::HONData
     The dataset.
 """
 function interval_overlaps(dataset::HONData)
-    min_M, max_M = intervals(HONData)
+    min_M, max_M = intervals(dataset)
     A, At, B = basic_matrices(dataset)
     simplex_order = simplex_degree_order(At)
     triangle_order = proj_graph_degree_order(B)
@@ -83,19 +83,5 @@ function interval_overlaps(dataset::HONData)
     tot = sum(overlaps)
     frac_overlaps = overlaps / tot
     println("dataset & # open triangles & 0 overlaps & 1 overlap & 2 overlaps & 3 overlaps")
-    println(@sprintf("%s & %d & %0.3f & %0.3f & %0.3f & %0.3f", dataset, tot, frac_overlaps...))
+    println(@sprintf("%s & %d & %0.3f & %0.3f & %0.3f & %0.3f", dataset.name, tot, frac_overlaps...))
 end
-
-"""
-interval_overlaps
---------------------
-
-interval_overlaps(dataset::String)
-
-Compute the number of active interval overlaps in open triangles.
-
-dataset::String
-    The dataset name.
-"""
-interval_overlaps(dataset::String) =
-    interval_overlaps(read_txt_data(dataset))

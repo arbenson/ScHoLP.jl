@@ -1,5 +1,6 @@
 export arithmetic_mean, geometric_mean, harmonic_mean, generalized_means
 export pref_attach3, common3, jaccard3, adamic_adar3
+export common_nbr_set
 
 """
 arithmetic_mean
@@ -123,7 +124,7 @@ function pref_attach3(triangles::Vector{NTuple{3,Int64}}, degrees::Vector{Int64}
     return scores    
 end
 
-# Return common neighbors of two nodes u and v.
+""" Return common neighbors of two nodes u and v. """
 function common_nbr_set(common_nbrs::NbrSetMap, u::Int64, v::Int64)
     min_node, max_node = min(u, v), max(u, v)
     if !haskey(common_nbrs, (min_node, max_node))

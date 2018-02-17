@@ -265,7 +265,7 @@ function Simplicial_PPR3_decomposed(triangles::Vector{NTuple{3,Int64}},
 end
 
 """
-Simplicial_PPR3_decomposed
+Simplicial_PPR3_combined
 --------------------------
 
 Compute the "combined" 3-way simplicial personalized PageRank scores for
@@ -330,7 +330,7 @@ function Simplicial_PPR3_combined(triangles::Vector{NTuple{3,Int64}},
         edge = edges_in_open_tri[ind]
         b = zeros(Float64, dim)
         b[edge] = 1.0
-        sol_comb = gmres(M, b, tol=1e-2) * (1 - α)
+        sol_comb = gmres(M, b, tol=1e-3) * (1 - α)
         # split into gradient, harmonic, and curl components
         for i in nz_row_inds(S, edge)
             S_comb[i, edge] = sol_comb[i]

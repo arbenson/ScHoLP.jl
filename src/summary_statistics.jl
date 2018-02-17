@@ -1,5 +1,23 @@
 export summary_statistics, basic_summary_statistics
 
+function data_size_cutoff(simplices::Vector{Int64}, nverts::Vector{Int64},
+                          times::Vector{Int64}, min_simplex_size::Int64,
+                          max_simplex_size::Int64)
+    new_simplices = Int64[]
+    new_nverts = Int64[]
+    new_times = Int64[]    
+    curr_ind = 1
+    for (nv, time) in zip(nverts, times)
+        if min_simplex_size <= nv <= max_simplex_size
+            append!(new_simplices, simplices[curr_ind:(curr_ind + nv - 1)])
+            push!(new_nverts, nv)
+            push!(new_times, time)
+        end
+        curr_ind += nv
+    end
+    return (new_simplices, new_nverts, new_times)
+end
+
 """
 summary_statistics
 ------------------------
