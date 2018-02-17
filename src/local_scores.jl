@@ -67,13 +67,13 @@ end
 
 """
 generalized_means
----------------
+----------------
 
 Computes the generalized p-means of the weights of the edges of a list of triangles.
 The generalized mean of 3 values is
 
 ```math
-M_p(x, y, z) = \left(\frac{1}{3}(x^p + y^p + z^p)\right)^{1/p}
+M_p(x, y, z) = ((x^p + y^p + z^p) / 3)^{1/p}
 ```
 
 generalized_means(triangles::Vector{NTuple{3,Int64}}, B::SpIntMat, ps::Float64=[-Inf; collect(-4:0.25:4); Inf])
@@ -81,11 +81,11 @@ generalized_means(triangles::Vector{NTuple{3,Int64}}, B::SpIntMat, ps::Float64=[
 Input parameters:
 - triangles::Vector{NTuple{3,Int64}}: The vector of triangles upon which to compute scores.
 - B::SpIntMat: Projected graph as a Sparse integer matrix, where B[i, j] is the number of times that i and j co-appear in a simplex.
-- ps::Float64=[-Inf; collect(-4:0.25:4); Inf]: the values of p for which to compute the means
+- ps::Vector{Float64}=[-Inf; collect(-4:0.25:4); Inf]: the values of p for which to compute the means
 
 Returns a matrix of size length(triangles) x length(ps) of the scores for the various generalized means.
 """
-function generalized_means(triangles::Vector{NTuple{3,Int64}}, B::SpIntMat, ps::Float64=[-Inf; collect(-4:0.25:4); Inf])
+function generalized_means(triangles::Vector{NTuple{3,Int64}}, B::SpIntMat, ps::Vector{Float64}=[-Inf; collect(-4:0.25:4); Inf])
     scores = zeros(Float64, length(triangles), length(ps))
     Threads.@threads for ind = 1:length(triangles)
         i, j, k = triangles[ind]

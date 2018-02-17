@@ -1,6 +1,7 @@
 export HONData, SpIntMat, SpFltMat, example_dataset
 export NbrSetMap, common_neighbors_map
-export basic_matrices, num_open_closed_triangles, sorted_tuple, enum_open_triangles, new_closures
+export num_open_closed_triangles, sorted_tuple, enum_open_triangles, new_closures
+export basic_matrices, simplex_degree_order, proj_graph_degree_order, nz_row_inds
 export split_data
 
 """
@@ -310,7 +311,7 @@ end
 neighbor_pairs(B::SpIntMat, order::Vector{Int64}, node::Int64) =
     combinations(neighbors(B, order, node), 2)
 
-# Ordering of nodes by the number of simplices in which they appear
+""" Ordering of nodes by the number of simplices in which they appear """
 function simplex_degree_order(At::SpIntMat)
     n = size(At, 2)
     simplex_order = zeros(Int64, n)
@@ -318,7 +319,7 @@ function simplex_degree_order(At::SpIntMat)
     return simplex_order
 end
 
-# Ordering of nodes by their degree
+""" Ordering of nodes by their degree """
 function proj_graph_degree_order(B::SpIntMat)
     n = size(B, 1)
     triangle_order = zeros(Int64, n)
