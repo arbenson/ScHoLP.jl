@@ -155,7 +155,7 @@ function new_closures(old_simplices::Vector{Int64}, old_nverts::Vector{Int64},
     A_old, A_old_t, B_old = basic_matrices(old_simplices, old_nverts)
     simp_order = simplex_degree_order(A_old_t)
     n = size(B_old, 1)
-    is_new_node = sum(A_old_t, 1) .== 0
+    is_new_node = sum(A_old_t, dims=1) .== 0
     new_triangles = Set{NTuple{3,Int64}}()
 
     curr_ind = 1
@@ -256,7 +256,7 @@ Outputs tuple (A, At, B):
 """
 function basic_matrices(simplices::Vector{Int64}, nverts::Vector{Int64})
     A = bipartite_graph(simplices, nverts)
-    At = A'
+    At = convert(SpIntMat, A')
     B = A * At
     B -= Diagonal(B)  # projected graph (no diagonal)
     return (A, At, B)
@@ -322,7 +322,7 @@ neighbor_pairs(B::SpIntMat, order::Vector{Int64}, node::Int64) =
 function simplex_degree_order(At::SpIntMat)
     n = size(At, 2)
     simplex_order = zeros(Int64, n)
-    simplex_order[sortperm(vec(sum(At, 1)))] = collect(1:n)
+    simplex_order[sortperm(vec(sum(At, dims=1)))] = collect(1:n)
     return simplex_order
 end
 
@@ -330,7 +330,7 @@ end
 function proj_graph_degree_order(B::SpIntMat)
     n = size(B, 1)
     triangle_order = zeros(Int64, n)
-    triangle_order[sortperm(vec(sum(spones(B), 1)))] = collect(1:n)
+    triangle_order[sortperm(vec(sum(spones(B), dims=1)))] = collect(1:n)
     return triangle_order
 end
 
