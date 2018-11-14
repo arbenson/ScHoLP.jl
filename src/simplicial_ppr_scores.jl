@@ -55,7 +55,7 @@ function grad_and_curl(A::SpIntMat, At::SpIntMat, B::SpIntMat)
 
     # Curl
     nthreads = Threads.nthreads()
-    Js = Vector{Vector{Int64}}(nthreads)
+    Js = Vector{Vector{Int64}}(undef, nthreads)
     for tid in 1:nthreads
         Js[tid] = Vector{Int64}()
     end
@@ -158,7 +158,7 @@ function Simplicial_PPR3_decomposed(triangles::Vector{NTuple{3,Int64}},
         push!(J, ind2, ind3, ind3)
     end
     S = sparse(I, J, ones(Float64, length(I)), nedges, nedges)
-    S = spones(S + S')
+    S = make_sparse_ones(S + S')
     S_comb = convert(SpFltMat, S)
     S_grad = copy(S_comb)
     S_curl = copy(S_comb)
@@ -208,8 +208,8 @@ function Simplicial_PPR3_decomposed(triangles::Vector{NTuple{3,Int64}},
         Threads.@threads for ind = 1:num_edges_in_open_tri
             tid = Threads.threadid()
             if tid == 1
-                print("$ind of $num_edges_in_open_tri \r")
-                flush(STDOUT)
+                print(stdout, "$ind of $num_edges_in_open_tri \r")
+                flush(stdout)
             end
             edge = edges_in_open_tri[ind]
             b = zeros(Float64, dim)
@@ -325,8 +325,8 @@ function Simplicial_PPR3_combined(triangles::Vector{NTuple{3,Int64}},
     Threads.@threads for ind = 1:num_edges_in_open_tri
         tid = Threads.threadid()
         if tid == 1
-            print("$ind of $num_edges_in_open_tri \r")
-            flush(STDOUT)
+            print(stdout, "$ind of $num_edges_in_open_tri \r")
+            flush(stdout)
         end
         edge = edges_in_open_tri[ind]
         b = zeros(Float64, dim)

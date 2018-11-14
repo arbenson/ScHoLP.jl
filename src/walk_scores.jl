@@ -15,9 +15,9 @@ function iterative_solve(M::SpFltMat, triangles::Vector{NTuple{3,Int64}})
     shuffled_inds = shuffle(find(inds .> 0))
     
     nthreads = Threads.nthreads()
-    I = Vector{Vector{Int64}}(nthreads)
-    J = Vector{Vector{Int64}}(nthreads)
-    V = Vector{Vector{Float64}}(nthreads)
+    I = Vector{Vector{Int64}}(undef, nthreads)
+    J = Vector{Vector{Int64}}(undef, nthreads)
+    V = Vector{Vector{Float64}}(undef, nthreads)
     Threads.@threads for t = 1:nthreads
         I[t], J[t] = Vector{Int64}(), Vector{Int64}()
         V[t] = Vector{Float64}()
@@ -25,8 +25,8 @@ function iterative_solve(M::SpFltMat, triangles::Vector{NTuple{3,Int64}})
     Threads.@threads for ind = 1:length(shuffled_inds)
         tid = Threads.threadid()
         if tid == 1
-            print("$(ind) of $(length(shuffled_inds)) \r")
-            flush(STDOUT)
+            print(stdout, "$(ind) of $(length(shuffled_inds)) \r")
+            flush(stdout)
         end
         node = shuffled_inds[ind]
         b = zeros(n)
@@ -81,7 +81,7 @@ returns a tuple (scores, S):
 function PKatz3(triangles::Vector{NTuple{3,Int64}}, B::SpIntMat,
                 unweighted::Bool, dense_solve::Bool=false)
     W = copy(B)
-    if unweighted; W = spones(W); end
+    if unweighted; W = make_sparse_ones(W); end
     σ_1 = svds(W,  nsv=1)[1][:S][1]
     β = min(0.25 / σ_1, 0.5)
     M = I - β * W
@@ -122,7 +122,7 @@ returns a tuple (scores, S):
 function PPR3(triangles::Vector{NTuple{3,Int64}}, B::SpIntMat,
               unweighted::Bool, dense_solve::Bool=false, α::Float64=0.85)
     W = copy(B)
-    if unweighted; W = spones(W); end
+    if unweighted; W = make_sparse_ones(W); end
     W = convert(SpFltMat, W)
     d = vec(sum(W, 1))
     nonzeros = d .> 0

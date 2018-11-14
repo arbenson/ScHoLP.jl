@@ -129,8 +129,8 @@ function common_neighbors_map(B::SpIntMat, triangles::Vector{NTuple{3,Int64}})
     Threads.@threads for j = 1:n
         tid = Threads.threadid()            
         if tid == 1
-            print("$j of $n \r")
-            flush(STDOUT)
+            print(stdout, "$j of $n \r")
+            flush(stdout)
         end
         Bj = Set{Int64}(nz_row_inds(B, j))
         # only collect data on edges that appear in triangles
@@ -310,6 +310,12 @@ function tetrahedron_closed(A::SpIntMat, At::SpIntMat, order::Vector{Int64},
     return false
 end
 
+function make_sparse_ones(A::SpIntMat)
+    C = copy(A)
+    LinearAlgebra.fillstored!(C, 1)
+    return C
+end
+
 function neighbors(B::SpIntMat, order::Vector{Int64}, node::Int64)
     node_order = order[node]
     return filter(nbr -> order[nbr] > node_order, nz_row_inds(B, node))
@@ -330,7 +336,7 @@ end
 function proj_graph_degree_order(B::SpIntMat)
     n = size(B, 1)
     triangle_order = zeros(Int64, n)
-    triangle_order[sortperm(vec(sum(spones(B), dims=1)))] = collect(1:n)
+    triangle_order[sortperm(vec(sum(make_sparse_ones(B), dims=1)))] = collect(1:n)
     return triangle_order
 end
 
