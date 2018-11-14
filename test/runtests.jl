@@ -1,7 +1,6 @@
+using Test
 using ScHoLP
-using Base.Test
 using Combinatorics
-
 
 function test_projected_graph()
     data = example_dataset("example1")

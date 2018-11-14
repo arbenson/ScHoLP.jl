@@ -1,9 +1,17 @@
-export closure_type_counts3, closure_type_counts4
-export open_types3, open_types4
-export STRONG, WEAK, OPEN, simplex_key3, simplex_key4
-export newly_closed_types3, newly_closed_types4
-export initialize_type_counter3, initialize_type_counter4
-export triangle_counts
+export closure_type_counts3,
+    closure_type_counts4,
+    open_types3,
+    open_types4,
+    STRONG,
+    WEAK,
+    OPEN,
+    simplex_key3,
+    simplex_key4,
+    newly_closed_types3,
+    newly_closed_types4,
+    initialize_type_counter3,
+    initialize_type_counter4,
+    triangle_counts
 
 const STRONG = 2
 const WEAK   = 1
@@ -23,7 +31,7 @@ function simplex_key4(wijk::Int64, wijl::Int64, wikl::Int64, wjkl::Int64,
     elseif num_edges == 4; key[1:3] = -2
     elseif num_edges == 3; key[1:3] = -3
     end
-    return (key...)
+    return tuple(key...)
 end
 
 function initialize_type_counter3()
@@ -498,7 +506,6 @@ function closure_type_counts3(dataset::HONData, initial_cutoff::Int64=100)
         cutoff_percentile = convert(Int64, round(percentile(times, initial_cutoff)))
         simps, nverts, times = window_data(minimum(times), cutoff_percentile,
                                            simps, nverts, times)
-                                           
     end
     old_simps, old_nverts, new_simps, new_nverts =
         split_data(simps, nverts, times, 80, 100)

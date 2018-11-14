@@ -1,4 +1,6 @@
-export Simplicial_PPR3_decomposed, Simplicial_PPR3_combined, grad_and_curl
+export Simplicial_PPR3_decomposed,
+    Simplicial_PPR3_combined,
+    grad_and_curl
 
 # Linear operator form of the Simplicial PageRank operator
 function SimplicialPROperator(grad::SpIntMat, curl::SpIntMat, α::Float64)
@@ -10,7 +12,7 @@ function SimplicialPROperator(grad::SpIntMat, curl::SpIntMat, α::Float64)
     Dinv = opDiagonal(Dinv)
     Minv = vec(sum(abs.(curl), 1))
     Minv = opDiagonal(1.0 ./ (Minv + 2))
-    H = (G * Dinv * G.' + C.' * C) * Minv
+    H = (G * Dinv * tranpose(G) + transpose(C) * C) * Minv
     return (1 - α / 2) * opEye(size(H,1)) + (α / 2) * H
 end
 

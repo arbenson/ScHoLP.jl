@@ -3,8 +3,12 @@ module ScHoLP
 using Base.Threads
 using Combinatorics
 using DataStructures
-using IterativeSolvers
+using DelimitedFiles
+using Krylov
+using LinearAlgebra
 using LinearOperators
+using Printf
+using SparseArrays
 using StatsBase
 
 # This needs to go first

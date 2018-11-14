@@ -1,8 +1,18 @@
-export HONData, SpIntMat, SpFltMat, example_dataset
-export NbrSetMap, common_neighbors_map
-export num_open_closed_triangles, sorted_tuple, enum_open_triangles, new_closures
-export basic_matrices, simplex_degree_order, proj_graph_degree_order, nz_row_inds
-export split_data
+export HONData,
+    SpIntMat,
+    SpFltMat,
+    example_dataset,
+    NbrSetMap,
+    common_neighbors_map,
+    num_open_closed_triangles,
+    sorted_tuple,
+    enum_open_triangles,
+    new_closures,
+    basic_matrices,
+    simplex_degree_order,
+    proj_graph_degree_order,
+    nz_row_inds,
+    split_data
 
 """
 example_dataset
@@ -75,7 +85,7 @@ Then the data structure would be
 - times = [10, 15, 21]
 There is an additional name variable attached to the dataset.
 """
-immutable HONData
+struct HONData
     simplices::Vector{Int64}
     nverts::Vector{Int64}
     times::Vector{Int64}
@@ -140,9 +150,6 @@ function common_neighbors_map(B::SpIntMat, triangles::Vector{NTuple{3,Int64}})
     return common_nbrs
 end
 
-"""
-
-"""
 function new_closures(old_simplices::Vector{Int64}, old_nverts::Vector{Int64},
                       new_simplices::Vector{Int64}, new_nverts::Vector{Int64})
     A_old, A_old_t, B_old = basic_matrices(old_simplices, old_nverts)
@@ -251,7 +258,7 @@ function basic_matrices(simplices::Vector{Int64}, nverts::Vector{Int64})
     A = bipartite_graph(simplices, nverts)
     At = A'
     B = A * At
-    B -= spdiagm(diag(B))  # projected graph (no diagonal)
+    B -= Diagonal(B)  # projected graph (no diagonal)
     return (A, At, B)
 end
 
@@ -341,7 +348,7 @@ function num_open_closed_triangles(A::SpIntMat, At::SpIntMat, B::SpIntMat)
             end
         end
     end
-    return (sum(counts, 2)...)
+    return tuple(vec(sum(counts, dims=2))...)
 end
 
 """
