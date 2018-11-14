@@ -100,7 +100,6 @@ function grad_and_curl(A::SpIntMat, At::SpIntMat, B::SpIntMat)
     ntriangles = curr_tri_id - 1
     # values are (1, 1, -1) for each triangle
     cV = ones(Int64, length(cJ))
-    assert(length(cV) % 3 == 0)
     cV[3:3:end] = -1
     curl = convert(SpIntMat, sparse(cI, cJ, cV, ntriangles, nedges))
 

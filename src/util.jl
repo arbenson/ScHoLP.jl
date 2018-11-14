@@ -415,7 +415,9 @@ Returns a tuple (old_simps, old_nverts, new_simps, new_nverts):
 function split_data(simplices::Vector{Int64}, nverts::Vector{Int64},
                     times::Vector{Int64}, quantile1::Int64,
                     quantile2::Int64)
-    assert(quantile1 <= quantile2)
+    if quantile1 > quantile2
+        error("First quantile ($quantile1) needs to be <= second quantile ($quantile2)")
+    end
     cutoff(prcntl::Int64) = convert(Int64, round(percentile(times, prcntl)))
 
     cutoff1 = cutoff(quantile1)
