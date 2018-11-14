@@ -8,6 +8,7 @@ export HONData,
     sorted_tuple,
     enum_open_triangles,
     new_closures,
+    make_sparse_ones,    
     basic_matrices,
     simplex_degree_order,
     proj_graph_degree_order,
@@ -121,7 +122,7 @@ function common_neighbors_map(B::SpIntMat, triangles::Vector{NTuple{3,Int64}})
     T = sparse(I, J, ones(length(I)), n, n)
 
     nthreads = Threads.nthreads()
-    common_nbrs_vec = Vector{NbrSetMap}(nthreads)
+    common_nbrs_vec = Vector{NbrSetMap}(undef, nthreads)
     Threads.@threads for tid = 1:nthreads
         common_nbrs_vec[tid] = NbrSetMap()
     end
@@ -187,7 +188,7 @@ function enum_open_triangles(simplices::Vector{Int64}, nverts::Vector{Int64})
     n = size(B, 2)
 
     nthreads = Threads.nthreads()
-    triangles = Vector{Vector{NTuple{3,Int64}}}(nthreads)
+    triangles = Vector{Vector{NTuple{3,Int64}}}(undef, nthreads)
     for i in 1:nthreads; triangles[i] = Vector{NTuple{3,Int64}}(); end
 
     # Shuffle so that data better distributes over threads
@@ -204,7 +205,7 @@ function enum_open_triangles(simplices::Vector{Int64}, nverts::Vector{Int64})
 
     # Combine arrays
     total = sum([length(ti) for ti in triangles])
-    combined_triangles = Vector{NTuple{3,Int64}}(total)
+    combined_triangles = Vector{NTuple{3,Int64}}(undef, total)
     curr_ind = 1
     for i in 1:nthreads
         size = length(triangles[i])
@@ -310,6 +311,18 @@ function tetrahedron_closed(A::SpIntMat, At::SpIntMat, order::Vector{Int64},
     return false
 end
 
+"""
+make_sparse_ones
+---------------
+
+Returns a new sparse matrix with the same non-zero pattern as the input but
+where all non-zeros are set to 1.
+
+make_sparse_ones(A::SpIntMat)
+
+Input parameter:
+- A::SpIntMat: a sparse matrix
+"""
 function make_sparse_ones(A::SpIntMat)
     C = copy(A)
     LinearAlgebra.fillstored!(C, 1)

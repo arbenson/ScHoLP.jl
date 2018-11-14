@@ -79,7 +79,7 @@ function grad_and_curl(A::SpIntMat, At::SpIntMat, B::SpIntMat)
 
     # combine arrays
     total = sum([length(J) for J in Js])
-    cJ = Vector{Int64}(total)
+    cJ = Vector{Int64}(undef, total)
     curr_ind = 1
     for t in 1:nthreads
         size = length(Js[t])
@@ -87,7 +87,7 @@ function grad_and_curl(A::SpIntMat, At::SpIntMat, B::SpIntMat)
         curr_ind += size
     end
     # triangle indices increment by 1 every third element
-    cI = zeros(length(cJ))
+    cI = zeros(Int64, length(cJ))
     curr_tri_id = 1
     curr_ind = 1
     while curr_ind <= length(cI)
@@ -100,7 +100,7 @@ function grad_and_curl(A::SpIntMat, At::SpIntMat, B::SpIntMat)
     ntriangles = curr_tri_id - 1
     # values are (1, 1, -1) for each triangle
     cV = ones(Int64, length(cJ))
-    cV[3:3:end] = -1
+    for j = 3:3:length(cV); cV[j] = -1; end
     curl = convert(SpIntMat, sparse(cI, cJ, cV, ntriangles, nedges))
 
     return (grad, curl, edge_map)
@@ -175,7 +175,7 @@ function Simplicial_PPR3_decomposed(triangles::Vector{NTuple{3,Int64}},
         curl_adj = curl'
         H = (grad * Dinv * grad_adj + curl_adj * curl) * Minv
         P = (speye(nedges) - H) / 2
-        M = full(speye(nedges) - α * P)
+        M = Matrix(speye(nedges) - α * P)
         println("edge flow solve...")
         Full_S = inv(M)
         for edge = 1:nedges, i in nz_row_inds(S, edge)
@@ -183,13 +183,13 @@ function Simplicial_PPR3_decomposed(triangles::Vector{NTuple{3,Int64}},
         end        
         # Gradient component
         println("gradient solve...")
-        Sol = grad * (pinv(full(grad)) * Full_S)
+        Sol = grad * (pinv(Matrix(grad)) * Full_S)
         for edge = 1:nedges, i in nz_row_inds(S, edge)
             S_grad[i, edge] = Sol[i, edge]
         end
         # Curl component
         println("curl solve...")
-        Sol = curl_adj * (pinv(full(curl_adj)) * Full_S)
+        Sol = curl_adj * (pinv(Matrix(curl_adj)) * Full_S)
         for edge = 1:nedges, i in nz_row_inds(S, edge)
             S_curl[i, edge] = Sol[i, edge]
         end

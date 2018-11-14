@@ -1,10 +1,11 @@
 module ScHoLP
 
+using Arpack
 using Base.Threads
 using Combinatorics
 using DataStructures
 using DelimitedFiles
-using Krylov
+#using Krylov
 using LinearAlgebra
 using LinearOperators
 using Printf

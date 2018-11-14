@@ -1,7 +1,7 @@
 export PPR3, PKatz3
 
 function full_solve(M::SpFltMat)
-    K = inv(full(M))
+    K = inv(Matrix(M))
     S = copy(M)
     for j in 1:size(M, 2), i in nz_row_inds(M, j); S[i, j] = K[i, j]; end
     return S
@@ -82,7 +82,7 @@ function PKatz3(triangles::Vector{NTuple{3,Int64}}, B::SpIntMat,
                 unweighted::Bool, dense_solve::Bool=false)
     W = copy(B)
     if unweighted; W = make_sparse_ones(W); end
-    σ_1 = svds(W,  nsv=1)[1][:S][1]
+    σ_1 = svds(W,  nsv=1)[1].S[1]
     β = min(0.25 / σ_1, 0.5)
     M = I - β * W
     S = (dense_solve ? full_solve(M) : iterative_solve(M, triangles)) - I    

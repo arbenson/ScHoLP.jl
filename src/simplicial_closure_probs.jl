@@ -172,7 +172,7 @@ function open_types4(simplices::Vector{Int64}, nverts::Vector{Int64})
 
     # 1. Get 4-node, 6-edge counts, which must be induced by looping over all
     # 2-skeletons in the data.
-    println("tetrahedral counts...")
+    print(stdout, "tetrahedral counts...\n")
     shuffled_inds = collect(1:n)
     shuffle!(shuffled_inds)
     Threads.@threads for ii = 1:n
@@ -200,7 +200,8 @@ function open_types4(simplices::Vector{Int64}, nverts::Vector{Int64})
                         index = tetra_index_map[key]
                         tid = Threads.threadid()
                         all_tetra_counts_arr[tid][index] += 1
-                        if minimum(weight_arr) == 0 || !tetrahedron_closed(A, At, simplex_order, i, j, k, l)
+                        if minimum(weight_arr) == 0 ||
+                            !tetrahedron_closed(A, At, simplex_order, i, j, k, l)
                             open_tetra_counts_arr[tid][index] += 1
                         end
                     end
@@ -208,6 +209,7 @@ function open_types4(simplices::Vector{Int64}, nverts::Vector{Int64})
             end
         end
     end
+
     all_tetra_counts  = sum(all_tetra_counts_arr)
     open_tetra_counts = sum(open_tetra_counts_arr)
     for (key, val) in tetra_index_map
@@ -224,9 +226,9 @@ function open_types4(simplices::Vector{Int64}, nverts::Vector{Int64})
     # 2A. Form matrices whose (i, j) entry is number of triangles with a
     # particular weight containing i and j
     W_base = triu(make_sparse_ones(B))
-    W0_all = Vector{SpIntMat}(nthreads)
-    W1_all = Vector{SpIntMat}(nthreads)
-    W2_all = Vector{SpIntMat}(nthreads)
+    W0_all = Vector{SpIntMat}(undef, nthreads)
+    W1_all = Vector{SpIntMat}(undef, nthreads)
+    W2_all = Vector{SpIntMat}(undef, nthreads)
     Threads.@threads for i = 1:nthreads
         W0_all[i] = copy(W_base)
         W1_all[i] = copy(W_base)
