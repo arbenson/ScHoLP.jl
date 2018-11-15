@@ -11,6 +11,7 @@ using LinearOperators
 using Printf
 using Random
 using SparseArrays
+using Statistics
 using StatsBase
 
 # This needs to go first
