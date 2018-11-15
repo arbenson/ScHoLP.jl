@@ -79,7 +79,7 @@ function interval_overlaps(dataset::HONData)
         end
     end
 
-    overlaps = sum(overlaps, 2)
+    overlaps = sum(overlaps, dims=2)
     tot = sum(overlaps)
     frac_overlaps = overlaps / tot
     println("dataset & # open triangles & 0 overlaps & 1 overlap & 2 overlaps & 3 overlaps")

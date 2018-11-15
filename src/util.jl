@@ -465,7 +465,7 @@ function backbone(simplices::Vector{Int64}, nverts::Vector{Int64},
     
     # contains for all simplices
     max_size = maximum(nverts)
-    all_simplices = Vector{Set}(max_size)
+    all_simplices = Vector{Set}(undef, max_size)
     for i in 1:max_size; all_simplices[i] = Set{Any}(); end
 
     curr_ind = 1
@@ -492,7 +492,7 @@ function configuration_sizes_preserved(simplices::Vector{Int64},
                                        nverts::Vector{Int64})
     config = zeros(Int64, length(simplices))
     app = copy(nverts)
-    unshift!(app, 1)
+    pushfirst!(app, 1)
     capp = cumsum(app)
     for val in unique(nverts)
         # Get the simplices with this number of vertices
