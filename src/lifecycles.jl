@@ -69,8 +69,8 @@ function collect_lifecycles(data::HONData, only_closed::Bool=false)
                 trail_times = trail_times[sp]
                 trail_simplices = trail_simplices[sp]
                 
-                closure_ind = findfirst(trail_events, 4)
-                if closure_ind > 0
+                closure_ind = findnext(x -> x == 4, trail_events, 1)
+                if closure_ind != nothing
                     trail_events = trail_events[1:closure_ind]
                     trail_times = trail_times[1:closure_ind]
                     trail_simplices = trail_simplices[1:closure_ind]
