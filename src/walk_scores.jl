@@ -11,15 +11,16 @@ function iterative_solve(M::SpFltMat, triangles::Vector{NTuple{3,Int64}})
     n = size(M, 2)
     # only compute for indices that appear in at least one triangle
     inds = zeros(Int64, n)
-    for (i, j, k) in triangles; inds[[i, j, k]] = 1; end
-    shuffled_inds = shuffle(find(inds .> 0))
+    for (i, j, k) in triangles; inds[[i, j, k]] .= 1; end
+    shuffled_inds = shuffle(findall(inds .> 0))
     
     nthreads = Threads.nthreads()
     I = Vector{Vector{Int64}}(undef, nthreads)
     J = Vector{Vector{Int64}}(undef, nthreads)
     V = Vector{Vector{Float64}}(undef, nthreads)
     Threads.@threads for t = 1:nthreads
-        I[t], J[t] = Vector{Int64}(), Vector{Int64}()
+        I[t] = Vector{Int64}()
+        J[t] = Vector{Int64}() 
         V[t] = Vector{Float64}()
     end
     Threads.@threads for ind = 1:length(shuffled_inds)
@@ -31,7 +32,7 @@ function iterative_solve(M::SpFltMat, triangles::Vector{NTuple{3,Int64}})
         node = shuffled_inds[ind]
         b = zeros(n)
         b[node] = 1
-        sol = gmres(M, b, tol=1e-3)
+        sol = bicgstabl(M, b, tol=1e-3)
         for i in nz_row_inds(M, node)
             push!(I[tid], i)
             push!(J[tid], node)
@@ -40,15 +41,16 @@ function iterative_solve(M::SpFltMat, triangles::Vector{NTuple{3,Int64}})
     end
     
     total = sum([length(It) for It in I])
-    cI, cJ = Vector{Int64}(total), Vector{Int64}(total)
-    cV = Vector{Float64}(total)                
+    cI = Vector{Int64}(undef, total)
+    cJ = Vector{Int64}(undef, total)
+    cV = Vector{Float64}(undef, total)                
     curr_ind = 1
     for t in 1:nthreads
         size = length(I[t])
-        curr_range = curr_ind:(curr_ind + size - 1)
-        cI[curr_range] = I[t][:]
-        cJ[curr_range] = J[t][:]
-        cV[curr_range] = V[t][:]            
+        curr_range = collect(curr_ind:(curr_ind + size - 1))
+        cI[curr_range] .= I[t]
+        cJ[curr_range] .= J[t]
+        cV[curr_range] .= V[t]
         curr_ind += size
     end
     return sparse(cI, cJ, cV, n, n)
@@ -124,10 +126,10 @@ function PPR3(triangles::Vector{NTuple{3,Int64}}, B::SpIntMat,
     W = copy(B)
     if unweighted; W = make_sparse_ones(W); end
     W = convert(SpFltMat, W)
-    d = vec(sum(W, 1))
-    nonzeros = d .> 0
+    d = vec(sum(W, dims=1))
+    nonzeros = findall(d .> 0)
     d[nonzeros] = 1.0 ./ d[nonzeros]
-    M = I - α * W * spdiagm(d)
+    M = I - α * W * Diagonal(d)
     S = (dense_solve ? full_solve(M) : iterative_solve(M, triangles)) * (1 - α)    
     scores = zeros(Float64, length(triangles))
     Threads.@threads for ind = 1:length(triangles)

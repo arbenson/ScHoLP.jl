@@ -252,9 +252,9 @@ function open_types4(simplices::Vector{Int64}, nverts::Vector{Int64})
     # Every edge starts with a count of 1 to get the nonzero pattern correct.
     # Here, we subtract off that count.
     Threads.@threads for i = 1:nthreads
-        W0_all[i].nzval[:] -= 1
-        W1_all[i].nzval[:] -= 1
-        W2_all[i].nzval[:] -= 1
+        W0_all[i].nzval .-= 1
+        W1_all[i].nzval .-= 1
+        W2_all[i].nzval .-= 1
     end
     W0, W1, W2 = sum(W0_all), sum(W1_all), sum(W2_all)
     # 2B. Get non-induced counts. Each edge contributes to a count for every

@@ -7,7 +7,7 @@ function SimplicialPROperator(grad::SpIntMat, curl::SpIntMat, α::Float64)
     G = LinearOperator(convert(SpFltMat, grad))
     C = LinearOperator(convert(SpFltMat, curl))
     Dinv = convert(Vector{Float64}, vec(sum(abs.(grad), 1)))
-    nonzero_inds = find(Dinv .> 0)
+    nonzero_inds = findall(Dinv .> 0)
     Dinv[nonzero_inds] = 1.0 ./ Dinv[nonzero_inds]
     Dinv = opDiagonal(Dinv)
     Minv = vec(sum(abs.(curl), 1))
@@ -166,7 +166,7 @@ function Simplicial_PPR3_decomposed(triangles::Vector{NTuple{3,Int64}},
 
     if dense_solve
         dG = convert(Vector{Float64}, vec(sum(abs.(grad), 1)))
-        nonzero_inds = find(dG .> 0)
+        nonzero_inds = findall(dG .> 0)
         dG[nonzero_inds] = 1.0 ./ dG[nonzero_inds]
         Dinv = spdiagm(dG)
         d = vec(sum(abs.(curl), 1))
@@ -201,7 +201,7 @@ function Simplicial_PPR3_decomposed(triangles::Vector{NTuple{3,Int64}},
         M = SimplicialPROperator(grad, curl, α)
         dim = size(M, 1)
         curl_adj = curl'
-        edges_in_open_tri = find(in_open_tri .> 0)
+        edges_in_open_tri = findall(in_open_tri .> 0)
         num_edges_in_open_tri = length(edges_in_open_tri)
         println("$num_edges_in_open_tri edges in open triangles...")
         
@@ -318,7 +318,7 @@ function Simplicial_PPR3_combined(triangles::Vector{NTuple{3,Int64}},
     M = SimplicialPROperator(grad, curl, α)
     dim = size(M, 1)
     curl_adj = curl'
-    edges_in_open_tri = find(in_open_tri .> 0)
+    edges_in_open_tri = findall(in_open_tri .> 0)
     num_edges_in_open_tri = length(edges_in_open_tri)
     println("$num_edges_in_open_tri edges in open triangles...")
     

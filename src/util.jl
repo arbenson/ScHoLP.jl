@@ -490,7 +490,7 @@ function configuration_sizes_preserved(simplices::Vector{Int64},
         # Get the simplices with this number of vertices
         inds = Int64[]
         cnt = 0
-        for ind in find(nverts .== val)
+        for ind in findall(nverts .== val)
             append!(inds, capp[ind]:(capp[ind] + val  - 1))
             cnt += 1
         end

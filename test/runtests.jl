@@ -215,7 +215,7 @@ function test_closure_counts3()
         # naive counting
         type_counts = initialize_type_counter3()
         A, At, B = basic_matrices(simplices, nverts)
-        inds = find(sum(At, dims=1) .> 0)
+        inds = findall(vec(sum(At, dims=1)) .> 0)
         n = length(inds)
         for (i, j, k) in combinations(inds, 3)
             if !((i, j, k) in closed_tris)
@@ -244,7 +244,7 @@ function test_closure_counts3()
         A, At, B = basic_matrices(simplices, nverts)
         is_triangle(a::Int64, b::Int64, c::Int64) =
             all(v -> v > 0, [B[a, b], B[a, c], B[b, c]])
-        inds = find(sum(At, dims=1) .> 0)
+        inds = findall(vec(sum(At, dims=1)) .> 0)
         n = length(inds)
         for (i, j, k, l) in combinations(inds, 4)
             if (is_triangle(i, j, k) || is_triangle(i, j, l) ||
@@ -346,9 +346,9 @@ function test_grad_and_curl()
     edge_id1 = edge_map[(1, 2)]
     edge_id2 = edge_map[(2, 4)]
     edge_id3 = edge_map[(1, 4)]
-    inds1 = findnz(curl[:, edge_id1])
-    inds2 = findnz(curl[:, edge_id2])
-    inds3 = findnz(curl[:, edge_id3])
+    inds1 = findnz(curl[:, edge_id1])[1]
+    inds2 = findnz(curl[:, edge_id2])[1]
+    inds3 = findnz(curl[:, edge_id3])[1]
     @test length(inds1) == 3
     @test length(inds2) == 2
     @test length(inds3) == 2
@@ -383,7 +383,7 @@ function test_score_functions()
     function walk_test(func, weighted::Bool)
         scores1 = func(tris, B, weighted, true)[1]
         scores2 = func(tris, B, weighted, false)[1]
-        @test scores1[1] ≈ scores2[1] atol=1e-3
+        @test scores1[1] ≈ scores2[1] atol=2e-3
     end
     walk_test(PKatz3, true)
     walk_test(PKatz3, false)
@@ -392,25 +392,20 @@ function test_score_functions()
 end
 
 function all_tests()
-    # 1.0 fail
-    #println("test_simplicial_closure")
-    #test_simplicial_closure()
+    println("test_simplicial_closure")
+    test_simplicial_closure()
 
-    # 1.0 pass
-    #println("test_new_closures")
-    #test_new_closures()
+    println("test_new_closures")
+    test_new_closures()
 
-    # 1.0 pass
-    #println("test_enum_open_triangles")
-    #test_enum_open_triangles()
+    println("test_enum_open_triangles")
+    test_enum_open_triangles()
 
-    # 1.0 pass    
-    #println("test_common_neighbor_map")
-    #test_common_neighbor_map()
+    println("test_common_neighbor_map")
+    test_common_neighbor_map()
 
-    # 1.0 fail
-    #println("test_grad_and_curl")
-    #test_grad_and_curl() 
+    println("test_grad_and_curl")
+    test_grad_and_curl() 
 
     println("test_score_functions")
     test_score_functions()
