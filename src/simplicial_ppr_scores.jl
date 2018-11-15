@@ -6,12 +6,12 @@ export Simplicial_PPR3_decomposed,
 function SimplicialPROperator(grad::SpIntMat, curl::SpIntMat, α::Float64)
     G = LinearOperator(convert(SpFltMat, grad))
     C = LinearOperator(convert(SpFltMat, curl))
-    Dinv = convert(Vector{Float64}, vec(sum(abs.(grad), dims=1)))
+    D = convert(Vector{Float64}, vec(sum(abs.(grad), dims=1)))
     nonzero_inds = findall(Dinv .> 0)
     Dinv[nonzero_inds] = 1.0 ./ Dinv[nonzero_inds]
     Dinv = opDiagonal(Dinv)
-    Minv = vec(sum(abs.(curl), dims=1))
-    Minv = opDiagonal(1.0 ./ (Minv .+ 2))
+    m = vec(sum(abs.(curl), dims=1)) .+ 2
+    Minv = opDiagonal(1.0 ./ m)
     H = (G * Dinv * transpose(G) + transpose(C) * C) * Minv
     return (1 - α / 2) * opEye(size(H,1)) + (α / 2) * H
 end
@@ -214,7 +214,7 @@ function Simplicial_PPR3_decomposed(triangles::Vector{NTuple{3,Int64}},
             edge = edges_in_open_tri[ind]
             b = zeros(Float64, dim)
             b[edge] = 1.0
-            sol_comb = gmres(M, b, tol=1e-3) * (1 - α)
+            sol_comb = bicgstabl(M, b, tol=1e-3) * (1 - α)
             # split into gradient, harmonic, and curl components
             sol_grad = grad * lsqr(grad, sol_comb, atol=1e-3, btol=1e-3)
             sol_curl = curl_adj * lsqr(curl_adj, sol_comb, atol=1e-3, btol=1e-3)
@@ -321,7 +321,7 @@ function Simplicial_PPR3_combined(triangles::Vector{NTuple{3,Int64}},
     edges_in_open_tri = findall(in_open_tri .> 0)
     num_edges_in_open_tri = length(edges_in_open_tri)
     println("$num_edges_in_open_tri edges in open triangles...")
-    
+
     Threads.@threads for ind = 1:num_edges_in_open_tri
         tid = Threads.threadid()
         if tid == 1
@@ -331,8 +331,7 @@ function Simplicial_PPR3_combined(triangles::Vector{NTuple{3,Int64}},
         edge = edges_in_open_tri[ind]
         b = zeros(Float64, dim)
         b[edge] = 1.0
-        sol_comb = gmres(M, b, tol=1e-3) * (1 - α)
-        # split into gradient, harmonic, and curl components
+        sol_comb = bicgstabl(M, b, tol=1e-3) * (1 - α)
         for i in nz_row_inds(S, edge)
             S_comb[i, edge] = sol_comb[i]
         end
