@@ -40,14 +40,14 @@ function summary_statistics(dataset::HONData)
         num_nodes = sum(sum(At, dims=1) .> 0)  # note: includes 1-node simplices
         density = nnz(B) / (num_nodes^2 - num_nodes)
         str1 = @sprintf("%d,%d,%d,%d,%d,%f,%e,%d,%d",
-                        num_nodes, length(nverts), nnz(A), mean_and_std(nverts)[1],
-                        maximum(nverts), mean_and_std(nonzeros(B))[1], density, nc, no)
+                        num_nodes, length(nverts), nnz(A), mean(nverts),
+                        maximum(nverts), mean(nonzeros(B)), density, nc, no)
 
         # Backbone dataset
         bb_simplices, bb_nverts, bb_times = backbone(simplices, nverts, times)
         (A, At, C) = basic_matrices(bb_simplices, bb_nverts)
         str2 = @sprintf("%d,%d,%f,%f", length(bb_nverts), nnz(A),
-                        mean_and_std(bb_nverts)[1], mean_and_std(nonzeros(C))[1])
+                        mean(bb_nverts), mean(nonzeros(C)))
 
         # Random configuration
         config = configuration_sizes_preserved(bb_simplices, bb_nverts)
@@ -56,7 +56,7 @@ function summary_statistics(dataset::HONData)
         density = nnz(B) / (num_nodes^2 - num_nodes)        
         no, nc = num_open_closed_triangles(A, At, B)
         str3 = @sprintf("%f,%e,%d,%d",
-                        mean_and_std(nonzeros(B))[1], density, nc, no)
+                        mean(nonzeros(B)), density, nc, no)
         return "$str1,$str2,$str3"
     end
 
