@@ -6,13 +6,13 @@ export Simplicial_PPR3_decomposed,
 function SimplicialPROperator(grad::SpIntMat, curl::SpIntMat, α::Float64)
     G = LinearOperator(convert(SpFltMat, grad))
     C = LinearOperator(convert(SpFltMat, curl))
-    Dinv = convert(Vector{Float64}, vec(sum(abs.(grad), 1)))
+    Dinv = convert(Vector{Float64}, vec(sum(abs.(grad), dims=1)))
     nonzero_inds = findall(Dinv .> 0)
     Dinv[nonzero_inds] = 1.0 ./ Dinv[nonzero_inds]
     Dinv = opDiagonal(Dinv)
-    Minv = vec(sum(abs.(curl), 1))
-    Minv = opDiagonal(1.0 ./ (Minv + 2))
-    H = (G * Dinv * tranpose(G) + transpose(C) * C) * Minv
+    Minv = vec(sum(abs.(curl), dims=1))
+    Minv = opDiagonal(1.0 ./ (Minv .+ 2))
+    H = (G * Dinv * transpose(G) + transpose(C) * C) * Minv
     return (1 - α / 2) * opEye(size(H,1)) + (α / 2) * H
 end
 
@@ -143,7 +143,7 @@ function Simplicial_PPR3_decomposed(triangles::Vector{NTuple{3,Int64}},
                                     α::Float64=0.85)
     At = A'
     B = A * At
-    B -= spdiagm(diag(B))
+    B -= Diagonal(B)
     grad, curl, edge_map = grad_and_curl(A, At, B)
     nedges = length(edge_map)
 
@@ -165,11 +165,11 @@ function Simplicial_PPR3_decomposed(triangles::Vector{NTuple{3,Int64}},
     S_harm = copy(S_comb)
 
     if dense_solve
-        dG = convert(Vector{Float64}, vec(sum(abs.(grad), 1)))
+        dG = convert(Vector{Float64}, vec(sum(abs.(grad), dims=1)))
         nonzero_inds = findall(dG .> 0)
         dG[nonzero_inds] = 1.0 ./ dG[nonzero_inds]
         Dinv = spdiagm(dG)
-        d = vec(sum(abs.(curl), 1))
+        d = vec(sum(abs.(curl), dims=1))
         Minv = spdiagm(1.0 ./ (d + 2))
         grad_adj = grad'
         curl_adj = curl'
@@ -295,9 +295,9 @@ returns a tuple (scores_comb, S_comb, vec_edge_map)
 """
 function Simplicial_PPR3_combined(triangles::Vector{NTuple{3,Int64}},
                                   A::SpIntMat, α::Float64=0.85)
-    At = A'
+    At = convert(SpIntMat, A')
     B = A * At
-    B -= spdiagm(diag(B))
+    B -= Diagonal(B)
     grad, curl, edge_map = grad_and_curl(A, At, B)
     nedges = length(edge_map)
 
@@ -307,12 +307,12 @@ function Simplicial_PPR3_combined(triangles::Vector{NTuple{3,Int64}},
     for (i, j, k) in triangles
         a, b, c = sort([i, j, k], alg=InsertionSort)
         ind1, ind2, ind3 = edge_map[(a, b)], edge_map[(a, c)], edge_map[(b, c)]
-        in_open_tri[[ind1, ind2, ind3]] = 1
+        in_open_tri[[ind1, ind2, ind3]] .= 1
         push!(I, ind1, ind1, ind2)
         push!(J, ind2, ind3, ind3)
     end
     S = sparse(I, J, ones(Float64, length(I)), nedges, nedges)
-    S = spones(S + S')
+    S = make_sparse_ones(S + S')
     S_comb = convert(SpFltMat, S)
 
     M = SimplicialPROperator(grad, curl, α)
@@ -358,7 +358,7 @@ function Simplicial_PPR3_combined(triangles::Vector{NTuple{3,Int64}},
     vec_edge_map = zeros(Int64, 2, length(edge_map))
     for ((i, j), ind) in edge_map
         vec_edge_map[1, ind] = i
-        vec_edge_map[2, ind] = j        
+        vec_edge_map[2, ind] = j
     end
 
     return (scores_comb, S_comb, vec_edge_map)

@@ -56,6 +56,14 @@ const SpFltMat = SparseMatrixCSC{Float64,Int64}
 const SpFltMat = SparseMatrixCSC{Float64,Int64}
 
 """
+SpMat
+--------
+
+const SpMat = Union{SpIntMat,SpFltMat}
+"""
+const SpMat = Union{SpIntMat,SpFltMat}
+
+"""
 NbrSetMap
 --------
 
@@ -323,7 +331,7 @@ make_sparse_ones(A::SpIntMat)
 Input parameter:
 - A::SpIntMat: a sparse matrix
 """
-function make_sparse_ones(A::SpIntMat)
+function make_sparse_ones(A::SpMat)
     C = copy(A)
     LinearAlgebra.fillstored!(C, 1)
     return C
