@@ -248,31 +248,6 @@ function bipartite_graph(simplices::Vector{Int64}, nverts::Vector{Int64})
 end
 
 """
-remove_diagonal
----------------
-
-Efficient implementation to remove the diagonal elements from a sparse CSC matrix.
-
-remove_diagonal(A::SpIntMat)
-
-Input parameter:
-- A::SpIntMat: matrix in sparse CSC format.
-
-"""
-function remove_diagonal(A::SpIntMat)
-    B = copy(A)
-    for j = 1:size(B, 2)
-        for ptr in B.colptr[j]:(B.colptr[j + 1] - 1)
-            if B.rowval[ptr] == j
-                B.nzval[ptr] = 0
-            end
-        end
-    end
-    dropzeros!(B)
-    return B
-end
-
-"""
 basic_matrices
 --------------
 
@@ -293,7 +268,8 @@ function basic_matrices(simplices::Vector{Int64}, nverts::Vector{Int64})
     A = bipartite_graph(simplices, nverts)
     At = A'
     B = A * At
-    B = remove_diagonal(B)
+    B -= sparse(Diagonal(B))
+    dropzeros!(B)
     return (A, convert(SpIntMat, At), B)
 end
 
