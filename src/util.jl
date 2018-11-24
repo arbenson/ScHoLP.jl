@@ -13,6 +13,7 @@ export HONData,
     simplex_degree_order,
     proj_graph_degree_order,
     nz_row_inds,
+    remove_diagonal,
     split_data
 
 """
@@ -243,7 +244,32 @@ function bipartite_graph(simplices::Vector{Int64}, nverts::Vector{Int64})
         end
         curr_ind += nv
     end
-    return convert(SpIntMat, sparse(I, J, ones(length(I)), maximum(simplices), length(nverts)))
+    return convert(SpIntMat, sparse(I, J, 1, maximum(simplices), length(nverts)))
+end
+
+"""
+remove_diagonal
+---------------
+
+Efficient implementation to remove the diagonal elements from a sparse CSC matrix.
+
+remove_diagonal(A::SpIntMat)
+
+Input parameter:
+- A::SpIntMat: matrix in sparse CSC format.
+
+"""
+function remove_diagonal(A::SpIntMat)
+    B = copy(A)
+    for j = 1:size(B, 2)
+        for ptr in B.colptr[j]:(B.colptr[j + 1] - 1)
+            if B.rowval[ptr] == j
+                B.nzval[ptr] = 0
+            end
+        end
+    end
+    dropzeros!(B)
+    return B
 end
 
 """
@@ -265,10 +291,10 @@ Outputs tuple (A, At, B):
 """
 function basic_matrices(simplices::Vector{Int64}, nverts::Vector{Int64})
     A = bipartite_graph(simplices, nverts)
-    At = convert(SpIntMat, A')
+    At = A'
     B = A * At
-    B -= Diagonal(B)  # projected graph (no diagonal)
-    return (A, At, B)
+    B = remove_diagonal(B)
+    return (A, convert(SpIntMat, At), B)
 end
 
 """
