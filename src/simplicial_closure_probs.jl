@@ -519,24 +519,6 @@ function closure_type_counts3(dataset::HONData, initial_cutoff::Int64=100)
 end
 
 """
-closure_type_counts3
---------------------
-
-Computes the closure probabilities of all 3-node configurations. The closure
-probability is the fraction of instances of open configurations appearing in the
-first 80% of the timestamped simplices that appear in a simplex in the final
-20%.
-
-closure_type_counts3(dataset::String, initial_cutoff::Int64=100)
-
-Input parameters:
-- dataset::String: The dataset name.
-- initial_cutoff::Int64=100: Initial cutoff of the simplices. If this is set to less than 100, then the data is first preprocessed to only consider the first initial_cutoff percentage of the data.
-"""
-closure_type_counts3(dataset::String, initial_cutoff::Int64=100) =
-    closure_type_counts3(read_txt_data(dataset), initial_cutoff)
-
-"""
 closure_type_counts4
 --------------------
 
@@ -569,21 +551,3 @@ function closure_type_counts4(dataset::HONData, initial_cutoff::Int64=100)
     type_counts = [(k..., cnt, closed_type_counts[k]) for (k, cnt) in open_type_counts]    
     writedlm("$(dataset.name)-4-node-closures-$(initial_cutoff).txt", sort(type_counts))
 end
-
-"""
-closure_type_counts4
---------------------
-
-Computes the closure probabilities of all 4-node configurations that contain at
-least one triangle. The closure probability is the fraction of instances of open
-configurations appearing in the first 80% of the timestamped simplices that
-appear in a simplex in the final 20%.
-
-closure_type_counts4(dataset::String, initial_cutoff::Int64=100)
-
-Input parameters:
-- dataset::String: The dataset name.
-- initial_cutoff::Int64=100: Initial cutoff of the simplices. If this is set to less than 100, then the data is first preprocessed to only consider the first initial_cutoff percentage of the data.
-"""
-closure_type_counts4(dataset::String, initial_cutoff::Int64=100) =
-    closure_type_counts4(read_txt_data(dataset), initial_cutoff)

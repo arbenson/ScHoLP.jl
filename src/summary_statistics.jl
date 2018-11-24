@@ -79,18 +79,6 @@ function summary_statistics(dataset::HONData)
 end
 
 """
-summary_statistics
-------------------------
-
-Computes several statistics about the dataset.
-
-summary_statistics(dataset::String)
-
-- dataset::String: The dataset name.
-"""
-summary_statistics(dataset::String) = summary_statistics(read_txt_data(dataset))
-
-"""
 basic_summary_statistics
 ------------------------
 
@@ -113,16 +101,3 @@ function basic_summary_statistics(dataset::HONData)
     @printf("%s & %d & %d & %d & %d\n", dataset.name, num_nodes, num_edges, num_simps, num_bb_simps)
 end
 
-"""
-basic_summary_statistics
-------------------------
-
-Prints some basic summary statistics of the dataset.
-
-basic_summary_statistics(dataset::String)
-
-Input parameter:
-- dataset::String: The dataset name.
-"""
-basic_summary_statistics(dataset::String) =
-    basic_summary_statistics(read_txt_data(dataset))
