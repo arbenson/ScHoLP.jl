@@ -1,10 +1,17 @@
 module ScHoLP
 
+using Arpack
 using Base.Threads
 using Combinatorics
 using DataStructures
+using DelimitedFiles
 using IterativeSolvers
+using LinearAlgebra
 using LinearOperators
+using Printf
+using Random
+using SparseArrays
+using Statistics
 using StatsBase
 
 # This needs to go first

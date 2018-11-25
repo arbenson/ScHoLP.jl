@@ -1,9 +1,17 @@
-export closure_type_counts3, closure_type_counts4
-export open_types3, open_types4
-export STRONG, WEAK, OPEN, simplex_key3, simplex_key4
-export newly_closed_types3, newly_closed_types4
-export initialize_type_counter3, initialize_type_counter4
-export triangle_counts
+export closure_type_counts3,
+    closure_type_counts4,
+    open_types3,
+    open_types4,
+    STRONG,
+    WEAK,
+    OPEN,
+    simplex_key3,
+    simplex_key4,
+    newly_closed_types3,
+    newly_closed_types4,
+    initialize_type_counter3,
+    initialize_type_counter4,
+    triangle_counts
 
 const STRONG = 2
 const WEAK   = 1
@@ -19,11 +27,11 @@ function simplex_key4(wijk::Int64, wijl::Int64, wikl::Int64, wjkl::Int64,
     wikl = min(wikl, STRONG)
     wjkl = min(wjkl, STRONG)
     key = sort([wijk, wijl, wikl, wjkl], alg=InsertionSort)
-    if     num_edges == 5; key[1:2] = -1
-    elseif num_edges == 4; key[1:3] = -2
-    elseif num_edges == 3; key[1:3] = -3
+    if     num_edges == 5; for j = 1:2; key[j] = -1; end
+    elseif num_edges == 4; for j = 1:3; key[j] = -2; end
+    elseif num_edges == 3; for j = 1:3; key[j] = -3; end
     end
-    return (key...)
+    return tuple(key...)
 end
 
 function initialize_type_counter3()
@@ -85,8 +93,8 @@ function newly_closed_types4(old_simplices::Vector{Int64}, old_nverts::Vector{In
     closed(i::Int64, j::Int64, k::Int64, l::Int64) =
         tetrahedron_closed(A_old, A_old_t, simplex_order_old, i, j, k, l)    
     n = size(B_old, 1)
-    is_new_node = sum(A_old_t, 1) .== 0
-    degs = vec(sum(spones(B_old), 1))    
+    is_new_node = vec(sum(A_old_t, dims=1)) .== 0
+    degs = vec(sum(make_sparse_ones(B_old), dims=1))    
     
     new_tetrahedra = Set{NTuple{4, Int64}}()
     type_counts = initialize_type_counter4()
@@ -100,7 +108,7 @@ function newly_closed_types4(old_simplices::Vector{Int64}, old_nverts::Vector{In
         curr_ind += nvert
         for (i, j, k, l) in combinations(simp, 4)
             # SKIP if all 4 nodes are not unique
-            if i == j || i == k || i == l || j == k || j == l || k == l; continue; end                        
+            if i == j || i == k || i == l || j == k || j == l || k == l; continue; end
             
             # SKIP if a node is new
             if max(i, j, k, l) > n; continue; end
@@ -128,7 +136,7 @@ function newly_closed_types4(old_simplices::Vector{Int64}, old_nverts::Vector{In
             wijk = weight3(i, j, k)
             wijl = weight3(i, j, l)
             wikl = weight3(i, k, l)
-            wjkl = weight3(j, k, l)            
+            wjkl = weight3(j, k, l)
             push!(type_counts, simplex_key4(wijk, wijl, wikl, wjkl, num_edges))
         end
     end
@@ -155,8 +163,8 @@ function open_types4(simplices::Vector{Int64}, nverts::Vector{Int64})
     end
     # thread-local counters
     nthreads = Threads.nthreads()
-    all_tetra_counts_arr = Vector{Vector{Int64}}(nthreads)
-    open_tetra_counts_arr = Vector{Vector{Int64}}(nthreads)
+    all_tetra_counts_arr = Vector{Vector{Int64}}(undef, nthreads)
+    open_tetra_counts_arr = Vector{Vector{Int64}}(undef, nthreads)
     Threads.@threads for i = 1:nthreads
         all_tetra_counts_arr[i] = zeros(Int64, length(tetra_index_map))
         open_tetra_counts_arr[i] = zeros(Int64, length(tetra_index_map))
@@ -164,15 +172,15 @@ function open_types4(simplices::Vector{Int64}, nverts::Vector{Int64})
 
     # 1. Get 4-node, 6-edge counts, which must be induced by looping over all
     # 2-skeletons in the data.
-    println("tetrahedral counts...")
+    print(stdout, "tetrahedral counts...\n")
     shuffled_inds = collect(1:n)
     shuffle!(shuffled_inds)
     Threads.@threads for ii = 1:n
         i = shuffled_inds[ii]
         weight_arr = zeros(Int64, 4)
         if Threads.threadid() == 1
-            print("$(ii) of $n \r")
-            flush(STDOUT)
+            print(stdout, "$(ii) of $n \r")
+            flush(stdout)
         end
         nbrs = sort(neighbors(B, triangle_order, i), by=v->triangle_order[v])
         nnbr = length(nbrs)
@@ -188,11 +196,12 @@ function open_types4(simplices::Vector{Int64}, nverts::Vector{Int64})
                         weight_arr[2] = min(weight3(i, j, l), STRONG)
                         weight_arr[3] = min(weight3(i, k, l), STRONG)
                         weight_arr[4] = min(weight3(j, k, l), STRONG)
-                        key = NTuple{4, Int64}(sort(weight_arr, alg=InsertionSort))
+                        key = NTuple{4,Int64}(sort(weight_arr, alg=InsertionSort))
                         index = tetra_index_map[key]
                         tid = Threads.threadid()
                         all_tetra_counts_arr[tid][index] += 1
-                        if minimum(weight_arr) == 0 || !tetrahedron_closed(A, At, simplex_order, i, j, k, l)
+                        if minimum(weight_arr) == 0 ||
+                            !tetrahedron_closed(A, At, simplex_order, i, j, k, l)
                             open_tetra_counts_arr[tid][index] += 1
                         end
                     end
@@ -200,6 +209,7 @@ function open_types4(simplices::Vector{Int64}, nverts::Vector{Int64})
             end
         end
     end
+
     all_tetra_counts  = sum(all_tetra_counts_arr)
     open_tetra_counts = sum(open_tetra_counts_arr)
     for (key, val) in tetra_index_map
@@ -215,14 +225,14 @@ function open_types4(simplices::Vector{Int64}, nverts::Vector{Int64})
     #
     # 2A. Form matrices whose (i, j) entry is number of triangles with a
     # particular weight containing i and j
-    W_base = triu(spones(B))
-    W0_all = Vector{SpIntMat}(nthreads)
-    W1_all = Vector{SpIntMat}(nthreads)
-    W2_all = Vector{SpIntMat}(nthreads)
+    W_base = triu(make_sparse_ones(B))
+    W0_all = Vector{SpIntMat}(undef, nthreads)
+    W1_all = Vector{SpIntMat}(undef, nthreads)
+    W2_all = Vector{SpIntMat}(undef, nthreads)
     Threads.@threads for i = 1:nthreads
         W0_all[i] = copy(W_base)
         W1_all[i] = copy(W_base)
-        W2_all[i] = copy(W_base)        
+        W2_all[i] = copy(W_base)
     end
 
     W_all = [W0_all, W1_all, W2_all]
@@ -242,9 +252,9 @@ function open_types4(simplices::Vector{Int64}, nverts::Vector{Int64})
     # Every edge starts with a count of 1 to get the nonzero pattern correct.
     # Here, we subtract off that count.
     Threads.@threads for i = 1:nthreads
-        W0_all[i].nzval[:] -= 1
-        W1_all[i].nzval[:] -= 1
-        W2_all[i].nzval[:] -= 1
+        W0_all[i].nzval .-= 1
+        W1_all[i].nzval .-= 1
+        W2_all[i].nzval .-= 1
     end
     W0, W1, W2 = sum(W0_all), sum(W1_all), sum(W2_all)
     # 2B. Get non-induced counts. Each edge contributes to a count for every
@@ -272,7 +282,7 @@ function open_types4(simplices::Vector{Int64}, nverts::Vector{Int64})
 
     # 3. Triangles with an adjacent edge
     tri_adj_edge_counts_arr  = zeros(length(index_map), nthreads)
-    degs = vec(sum(spones(B), 2))
+    degs = vec(sum(make_sparse_ones(B), dims=2))
     Threads.@threads for i = 1:n
         for (j, k) in neighbor_pairs(B, triangle_order, i)
             if B[j, k] > 0
@@ -283,7 +293,7 @@ function open_types4(simplices::Vector{Int64}, nverts::Vector{Int64})
             end
         end
     end
-    tri_adj_edge_counts = sum(tri_adj_edge_counts_arr, 2)
+    tri_adj_edge_counts = sum(tri_adj_edge_counts_arr, dims=2)
     for (key, index) in index_map
         push!(type_counts, key, tri_adj_edge_counts[index])
     end
@@ -303,7 +313,7 @@ function open_types4(simplices::Vector{Int64}, nverts::Vector{Int64})
 
     # 4. Triangles with an isolated node
     tri_iso_node_counts_arr  = zeros(length(index_map), nthreads)
-    num_verts = sum(sum(At, 1) .> 0)
+    num_verts = sum(sum(At, dims=1) .> 0)
     Threads.@threads for i = 1:n
        for (j, k) in neighbor_pairs(B, triangle_order, i)
            if B[j, k] > 0
@@ -313,7 +323,7 @@ function open_types4(simplices::Vector{Int64}, nverts::Vector{Int64})
            end
        end
     end
-    tri_iso_node_counts = sum(tri_iso_node_counts_arr, 2)
+    tri_iso_node_counts = sum(tri_iso_node_counts_arr, dims=2)
     for (key, index) in index_map
         push!(type_counts, key, tri_iso_node_counts[index])
     end
@@ -349,7 +359,7 @@ function newly_closed_types3(old_simplices::Vector{Int64}, old_nverts::Vector{In
     closed(i::Int64, j::Int64, k::Int64) =
         triangle_closed(A_old, A_old_t, simplex_order_old, i, j, k)
     n = size(B_old, 1)
-    is_new_node = sum(A_old_t, 1) .== 0    
+    is_new_node = vec(sum(A_old_t, dims=1)) .== 0    
 
     type_counts = initialize_type_counter3()
     new_triangles = Set{NTuple{3, Int64}}()
@@ -421,8 +431,8 @@ function open_types3(simplices::Vector{Int64}, nverts::Vector{Int64})
             end
         end
     end
-    all_tris_counts  = sum(all_tris_counts_arr, 2)
-    open_tris_counts = sum(open_tris_counts_arr, 2)    
+    all_tris_counts  = sum(all_tris_counts_arr, dims=2)
+    open_tris_counts = sum(open_tris_counts_arr, dims=2)
     triad_types = [(WEAK, WEAK, WEAK), (WEAK, WEAK, STRONG),
                    (WEAK, STRONG, STRONG), (STRONG, STRONG, STRONG)]
     for key in triad_types
@@ -449,7 +459,7 @@ function open_types3(simplices::Vector{Int64}, nverts::Vector{Int64})
     end
 
     # Edge + isolated node counts
-    num_verts = sum(sum(At, 1) .> 0)
+    num_verts = sum(sum(At, dims=1) .> 0)
     push!(type_counts, (OPEN, OPEN, WEAK),   (sum(d1) / 2) * (num_verts - 2))
     push!(type_counts, (OPEN, OPEN, STRONG), (sum(d2) / 2) * (num_verts - 2))
     for triad_key in triad_types
@@ -498,7 +508,6 @@ function closure_type_counts3(dataset::HONData, initial_cutoff::Int64=100)
         cutoff_percentile = convert(Int64, round(percentile(times, initial_cutoff)))
         simps, nverts, times = window_data(minimum(times), cutoff_percentile,
                                            simps, nverts, times)
-                                           
     end
     old_simps, old_nverts, new_simps, new_nverts =
         split_data(simps, nverts, times, 80, 100)
@@ -508,24 +517,6 @@ function closure_type_counts3(dataset::HONData, initial_cutoff::Int64=100)
     type_counts = [(k..., cnt, closed_type_counts[k]) for (k, cnt) in open_type_counts]
     writedlm("$(dataset.name)-3-node-closures-$(initial_cutoff).txt", sort(type_counts))
 end
-
-"""
-closure_type_counts3
---------------------
-
-Computes the closure probabilities of all 3-node configurations. The closure
-probability is the fraction of instances of open configurations appearing in the
-first 80% of the timestamped simplices that appear in a simplex in the final
-20%.
-
-closure_type_counts3(dataset::String, initial_cutoff::Int64=100)
-
-Input parameters:
-- dataset::String: The dataset name.
-- initial_cutoff::Int64=100: Initial cutoff of the simplices. If this is set to less than 100, then the data is first preprocessed to only consider the first initial_cutoff percentage of the data.
-"""
-closure_type_counts3(dataset::String, initial_cutoff::Int64=100) =
-    closure_type_counts3(read_txt_data(dataset), initial_cutoff)
 
 """
 closure_type_counts4
@@ -560,21 +551,3 @@ function closure_type_counts4(dataset::HONData, initial_cutoff::Int64=100)
     type_counts = [(k..., cnt, closed_type_counts[k]) for (k, cnt) in open_type_counts]    
     writedlm("$(dataset.name)-4-node-closures-$(initial_cutoff).txt", sort(type_counts))
 end
-
-"""
-closure_type_counts4
---------------------
-
-Computes the closure probabilities of all 4-node configurations that contain at
-least one triangle. The closure probability is the fraction of instances of open
-configurations appearing in the first 80% of the timestamped simplices that
-appear in a simplex in the final 20%.
-
-closure_type_counts4(dataset::String, initial_cutoff::Int64=100)
-
-Input parameters:
-- dataset::String: The dataset name.
-- initial_cutoff::Int64=100: Initial cutoff of the simplices. If this is set to less than 100, then the data is first preprocessed to only consider the first initial_cutoff percentage of the data.
-"""
-closure_type_counts4(dataset::String, initial_cutoff::Int64=100) =
-    closure_type_counts4(read_txt_data(dataset), initial_cutoff)

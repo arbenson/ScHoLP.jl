@@ -1,8 +1,21 @@
-export HONData, SpIntMat, SpFltMat, example_dataset
-export NbrSetMap, common_neighbors_map
-export num_open_closed_triangles, sorted_tuple, enum_open_triangles, new_closures
-export basic_matrices, simplex_degree_order, proj_graph_degree_order, nz_row_inds
-export split_data
+export HONData,
+    SpIntMat,
+    SpFltMat,
+    example_dataset,
+    NbrSetMap,
+    common_neighbors_map,
+    neighbor_pairs,
+    num_open_closed_triangles,
+    sorted_tuple,
+    enum_open_triangles,
+    new_closures,
+    make_sparse_ones,    
+    basic_matrices,
+    simplex_degree_order,
+    proj_graph_degree_order,
+    nz_row_inds,
+    remove_diagonal,
+    split_data
 
 """
 example_dataset
@@ -45,6 +58,14 @@ const SpFltMat = SparseMatrixCSC{Float64,Int64}
 const SpFltMat = SparseMatrixCSC{Float64,Int64}
 
 """
+SpMat
+--------
+
+const SpMat = Union{SpIntMat,SpFltMat}
+"""
+const SpMat = Union{SpIntMat,SpFltMat}
+
+"""
 NbrSetMap
 --------
 
@@ -75,7 +96,7 @@ Then the data structure would be
 - times = [10, 15, 21]
 There is an additional name variable attached to the dataset.
 """
-immutable HONData
+struct HONData
     simplices::Vector{Int64}
     nverts::Vector{Int64}
     times::Vector{Int64}
@@ -111,7 +132,7 @@ function common_neighbors_map(B::SpIntMat, triangles::Vector{NTuple{3,Int64}})
     T = sparse(I, J, ones(length(I)), n, n)
 
     nthreads = Threads.nthreads()
-    common_nbrs_vec = Vector{NbrSetMap}(nthreads)
+    common_nbrs_vec = Vector{NbrSetMap}(undef, nthreads)
     Threads.@threads for tid = 1:nthreads
         common_nbrs_vec[tid] = NbrSetMap()
     end
@@ -119,8 +140,8 @@ function common_neighbors_map(B::SpIntMat, triangles::Vector{NTuple{3,Int64}})
     Threads.@threads for j = 1:n
         tid = Threads.threadid()            
         if tid == 1
-            print("$j of $n \r")
-            flush(STDOUT)
+            print(stdout, "$j of $n \r")
+            flush(stdout)
         end
         Bj = Set{Int64}(nz_row_inds(B, j))
         # only collect data on edges that appear in triangles
@@ -140,15 +161,12 @@ function common_neighbors_map(B::SpIntMat, triangles::Vector{NTuple{3,Int64}})
     return common_nbrs
 end
 
-"""
-
-"""
 function new_closures(old_simplices::Vector{Int64}, old_nverts::Vector{Int64},
                       new_simplices::Vector{Int64}, new_nverts::Vector{Int64})
     A_old, A_old_t, B_old = basic_matrices(old_simplices, old_nverts)
     simp_order = simplex_degree_order(A_old_t)
     n = size(B_old, 1)
-    is_new_node = sum(A_old_t, 1) .== 0
+    is_new_node = sum(A_old_t, dims=1) .== 0
     new_triangles = Set{NTuple{3,Int64}}()
 
     curr_ind = 1
@@ -180,7 +198,7 @@ function enum_open_triangles(simplices::Vector{Int64}, nverts::Vector{Int64})
     n = size(B, 2)
 
     nthreads = Threads.nthreads()
-    triangles = Vector{Vector{NTuple{3,Int64}}}(nthreads)
+    triangles = Vector{Vector{NTuple{3,Int64}}}(undef, nthreads)
     for i in 1:nthreads; triangles[i] = Vector{NTuple{3,Int64}}(); end
 
     # Shuffle so that data better distributes over threads
@@ -197,7 +215,7 @@ function enum_open_triangles(simplices::Vector{Int64}, nverts::Vector{Int64})
 
     # Combine arrays
     total = sum([length(ti) for ti in triangles])
-    combined_triangles = Vector{NTuple{3,Int64}}(total)
+    combined_triangles = Vector{NTuple{3,Int64}}(undef, total)
     curr_ind = 1
     for i in 1:nthreads
         size = length(triangles[i])
@@ -227,7 +245,7 @@ function bipartite_graph(simplices::Vector{Int64}, nverts::Vector{Int64})
         end
         curr_ind += nv
     end
-    return convert(SpIntMat, sparse(I, J, ones(length(I)), maximum(simplices), length(nverts)))
+    return convert(SpIntMat, sparse(I, J, 1, maximum(simplices), length(nverts)))
 end
 
 """
@@ -251,8 +269,9 @@ function basic_matrices(simplices::Vector{Int64}, nverts::Vector{Int64})
     A = bipartite_graph(simplices, nverts)
     At = A'
     B = A * At
-    B -= spdiagm(diag(B))  # projected graph (no diagonal)
-    return (A, At, B)
+    B -= sparse(Diagonal(B))
+    dropzeros!(B)
+    return (A, convert(SpIntMat, At), B)
 end
 
 """
@@ -303,6 +322,24 @@ function tetrahedron_closed(A::SpIntMat, At::SpIntMat, order::Vector{Int64},
     return false
 end
 
+"""
+make_sparse_ones
+---------------
+
+Returns a new sparse matrix with the same non-zero pattern as the input but
+where all non-zeros are set to 1.
+
+make_sparse_ones(A::SpIntMat)
+
+Input parameter:
+- A::SpIntMat: a sparse matrix
+"""
+function make_sparse_ones(A::SpMat)
+    C = copy(A)
+    LinearAlgebra.fillstored!(C, 1)
+    return C
+end
+
 function neighbors(B::SpIntMat, order::Vector{Int64}, node::Int64)
     node_order = order[node]
     return filter(nbr -> order[nbr] > node_order, nz_row_inds(B, node))
@@ -315,7 +352,7 @@ neighbor_pairs(B::SpIntMat, order::Vector{Int64}, node::Int64) =
 function simplex_degree_order(At::SpIntMat)
     n = size(At, 2)
     simplex_order = zeros(Int64, n)
-    simplex_order[sortperm(vec(sum(At, 1)))] = collect(1:n)
+    simplex_order[sortperm(vec(sum(At, dims=1)))] = collect(1:n)
     return simplex_order
 end
 
@@ -323,7 +360,7 @@ end
 function proj_graph_degree_order(B::SpIntMat)
     n = size(B, 1)
     triangle_order = zeros(Int64, n)
-    triangle_order[sortperm(vec(sum(spones(B), 1)))] = collect(1:n)
+    triangle_order[sortperm(vec(sum(make_sparse_ones(B), dims=1)))] = collect(1:n)
     return triangle_order
 end
 
@@ -341,7 +378,7 @@ function num_open_closed_triangles(A::SpIntMat, At::SpIntMat, B::SpIntMat)
             end
         end
     end
-    return (sum(counts, 2)...)
+    return tuple(vec(sum(counts, dims=2))...)
 end
 
 """
@@ -408,7 +445,9 @@ Returns a tuple (old_simps, old_nverts, new_simps, new_nverts):
 function split_data(simplices::Vector{Int64}, nverts::Vector{Int64},
                     times::Vector{Int64}, quantile1::Int64,
                     quantile2::Int64)
-    assert(quantile1 <= quantile2)
+    if quantile1 > quantile2
+        error("First quantile ($quantile1) needs to be <= second quantile ($quantile2)")
+    end
     cutoff(prcntl::Int64) = convert(Int64, round(percentile(times, prcntl)))
 
     cutoff1 = cutoff(quantile1)
@@ -429,7 +468,7 @@ function backbone(simplices::Vector{Int64}, nverts::Vector{Int64},
     
     # contains for all simplices
     max_size = maximum(nverts)
-    all_simplices = Vector{Set}(max_size)
+    all_simplices = Vector{Set}(undef, max_size)
     for i in 1:max_size; all_simplices[i] = Set{Any}(); end
 
     curr_ind = 1
@@ -456,13 +495,13 @@ function configuration_sizes_preserved(simplices::Vector{Int64},
                                        nverts::Vector{Int64})
     config = zeros(Int64, length(simplices))
     app = copy(nverts)
-    unshift!(app, 1)
+    pushfirst!(app, 1)
     capp = cumsum(app)
     for val in unique(nverts)
         # Get the simplices with this number of vertices
         inds = Int64[]
         cnt = 0
-        for ind in find(nverts .== val)
+        for ind in findall(nverts .== val)
             append!(inds, capp[ind]:(capp[ind] + val  - 1))
             cnt += 1
         end

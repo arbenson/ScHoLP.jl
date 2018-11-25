@@ -1,7 +1,8 @@
+using Test
 using ScHoLP
-using Base.Test
 using Combinatorics
-
+using LinearAlgebra
+using SparseArrays
 
 function test_projected_graph()
     data = example_dataset("example1")
@@ -10,7 +11,7 @@ function test_projected_graph()
     
     @test size(B) == (9, 9)
     @test nnz(B - B') == 0
-    @test sum(diag(B)) == 0
+    @test sum(Diagonal(B)) == 0
     @test B[1, 2] == 2
     @test B[1, 3] == 2
     @test B[1, 4] == 1
@@ -214,7 +215,7 @@ function test_closure_counts3()
         # naive counting
         type_counts = initialize_type_counter3()
         A, At, B = basic_matrices(simplices, nverts)
-        inds = find(sum(At, 1) .> 0)
+        inds = findall(vec(sum(At, dims=1)) .> 0)
         n = length(inds)
         for (i, j, k) in combinations(inds, 3)
             if !((i, j, k) in closed_tris)
@@ -243,7 +244,7 @@ function test_closure_counts3()
         A, At, B = basic_matrices(simplices, nverts)
         is_triangle(a::Int64, b::Int64, c::Int64) =
             all(v -> v > 0, [B[a, b], B[a, c], B[b, c]])
-        inds = find(sum(At, 1) .> 0)
+        inds = findall(vec(sum(At, dims=1)) .> 0)
         n = length(inds)
         for (i, j, k, l) in combinations(inds, 4)
             if (is_triangle(i, j, k) || is_triangle(i, j, l) ||
@@ -337,7 +338,7 @@ function test_grad_and_curl()
     @test grad[edge_id, 3] == 1
     @test grad[edge_id, 1] == -1
     @test nnz(grad[edge_id, :]) == 2
-    degrees = vec(sum(spones(B), 1))
+    degrees = vec(sum(make_sparse_ones(B), dims=1))
     @test nnz(grad[:, 1]) == degrees[1]
     @test nnz(grad[:, 3]) == degrees[3]    
 
@@ -345,9 +346,9 @@ function test_grad_and_curl()
     edge_id1 = edge_map[(1, 2)]
     edge_id2 = edge_map[(2, 4)]
     edge_id3 = edge_map[(1, 4)]
-    inds1 = find(curl[:, edge_id1])
-    inds2 = find(curl[:, edge_id2])
-    inds3 = find(curl[:, edge_id3])
+    inds1 = findnz(curl[:, edge_id1])[1]
+    inds2 = findnz(curl[:, edge_id2])[1]
+    inds3 = findnz(curl[:, edge_id3])[1]
     @test length(inds1) == 3
     @test length(inds2) == 2
     @test length(inds3) == 2
@@ -369,9 +370,9 @@ function test_score_functions()
     @test arithmetic_mean(tris, B)[1] ≈ 1
     @test geometric_mean(tris, B)[1] ≈ 1
 
-    degrees = vec(sum(spones(B), 1))
+    degrees = vec(sum(make_sparse_ones(B), dims=1))
     @test pref_attach3(tris, degrees)[1] ≈ 63
-    simp_degrees = vec(sum(At, 1))    
+    simp_degrees = vec(sum(At, dims=1))
     @test pref_attach3(tris, simp_degrees)[1] ≈ 20
 
     common_nbrs = common_neighbors_map(B, tris)
@@ -382,7 +383,7 @@ function test_score_functions()
     function walk_test(func, weighted::Bool)
         scores1 = func(tris, B, weighted, true)[1]
         scores2 = func(tris, B, weighted, false)[1]
-        @test scores1[1] ≈ scores2[1] atol=1e-3
+        @test scores1[1] ≈ scores2[1] atol=2e-3
     end
     walk_test(PKatz3, true)
     walk_test(PKatz3, false)
@@ -393,15 +394,12 @@ end
 function all_tests()
     println("test_simplicial_closure")
     test_simplicial_closure()
-    
-    println("test_new_closures")
-    test_new_closures()
-    
-    println("test_enum_open_triangles")
-    test_enum_open_triangles()
 
     println("test_new_closures")
     test_new_closures()
+
+    println("test_enum_open_triangles")
+    test_enum_open_triangles()
 
     println("test_common_neighbor_map")
     test_common_neighbor_map()
