@@ -1,19 +1,43 @@
 export Simplicial_PPR3_decomposed,
     Simplicial_PPR3_combined,
+    SimplicialPROperator,
     grad_and_curl
 
-# Linear operator form of the Simplicial PageRank operator
-function SimplicialPROperator(grad::SpIntMat, curl::SpIntMat, α::Float64)
+function hodge_normalization(grad::SpIntMat, curl::SpIntMat,
+                             edge_map::Dict{NTuple{2,Int64},Int64})
+    d1 = convert(Vector{Float64}, vec(sum(abs.(grad), dims=1)))
+    d2 = convert(Vector{Float64}, vec(sum(abs.(curl), dims=1)))
+    for ((i, j), ind) in edge_map; d2[ind] += d1[i] + d1[j]; end
+    nonzero_inds = findall(d2 .> 0)
+    d2[nonzero_inds] = 1.0 ./ d2[nonzero_inds]
+    return d2
+end
+
+"""
+SimplicialPROperator
+-------------
+
+Construct the Simplicial PageRank Operator
+
+SimplicialPROperator(grad::SpIntMat, curl::SpIntMat,
+                     edge_map::Dict{NTuple{2,Int64},Int64}, α::Float64)
+
+Input parameters:
+- grad::SpIntMat: gradient operator (as a matrix)
+- curl::SpIntMat: curl operator (as a matrix)
+- edge_map::Dict{NTuple{2,Int64}, Int64}: maps an a sorted edge tuple to an index for the matrices
+- α::Float64: teleportation parameter
+
+returns simplicial PageRank operator
+"""
+function SimplicialPROperator(grad::SpIntMat, curl::SpIntMat,
+                              edge_map::Dict{NTuple{2,Int64},Int64}, α::Float64)
     G = LinearOperator(convert(SpFltMat, grad))
     C = LinearOperator(convert(SpFltMat, curl))
-    D = convert(Vector{Float64}, vec(sum(abs.(grad), dims=1)))
-    nonzero_inds = findall(Dinv .> 0)
-    Dinv[nonzero_inds] = 1.0 ./ Dinv[nonzero_inds]
-    Dinv = opDiagonal(Dinv)
-    m = vec(sum(abs.(curl), dims=1)) .+ 2
-    Minv = opDiagonal(1.0 ./ m)
-    H = (G * Dinv * transpose(G) + transpose(C) * C) * Minv
-    return (1 - α / 2) * opEye(size(H,1)) + (α / 2) * H
+    Dinv = opDiagonal(hodge_normalization(grad, curl, edge_map))
+    L0 = (G * transpose(G) + transpose(C) * C) * Dinv
+    β0 = 1 / α - 1
+    return (β0 * opEye(size(L0, 1)) + L0)
 end
 
 """
@@ -141,7 +165,7 @@ returns a tuple (scores_comb, scores_curl, scores_grad, scores_harm, S_comb, S_c
 function Simplicial_PPR3_decomposed(triangles::Vector{NTuple{3,Int64}},
                                     A::SpIntMat, dense_solve::Bool=false,
                                     α::Float64=0.85)
-    At = A'
+    At = convert(SpIntMat, A')
     B = A * At
     B -= Diagonal(B)
     grad, curl, edge_map = grad_and_curl(A, At, B)
@@ -153,7 +177,7 @@ function Simplicial_PPR3_decomposed(triangles::Vector{NTuple{3,Int64}},
     for (i, j, k) in triangles
         a, b, c = sort([i, j, k], alg=InsertionSort)
         ind1, ind2, ind3 = edge_map[(a, b)], edge_map[(a, c)], edge_map[(b, c)]
-        in_open_tri[[ind1, ind2, ind3]] = 1
+        in_open_tri[[ind1, ind2, ind3]] .= 1
         push!(I, ind1, ind1, ind2)
         push!(J, ind2, ind3, ind3)
     end
@@ -163,24 +187,19 @@ function Simplicial_PPR3_decomposed(triangles::Vector{NTuple{3,Int64}},
     S_grad = copy(S_comb)
     S_curl = copy(S_comb)
     S_harm = copy(S_comb)
-
+    β0 = 1 / α - 1
+    
     if dense_solve
-        dG = convert(Vector{Float64}, vec(sum(abs.(grad), dims=1)))
-        nonzero_inds = findall(dG .> 0)
-        dG[nonzero_inds] = 1.0 ./ dG[nonzero_inds]
-        Dinv = spdiagm(dG)
-        d = vec(sum(abs.(curl), dims=1))
-        Minv = spdiagm(1.0 ./ (d + 2))
         grad_adj = grad'
         curl_adj = curl'
-        H = (grad * Dinv * grad_adj + curl_adj * curl) * Minv
-        P = (speye(nedges) - H) / 2
-        M = Matrix(speye(nedges) - α * P)
+        Dinv = hodge_normalization(grad, curl, edge_map)
+        L1 = (grad * grad_adj + curl_adj * curl) * sparse(Diagonal(Dinv))
+        M = Matrix(β0 * sparse(Diagonal(ones(Float64, size(L1, 1)))) + L1)
         println("edge flow solve...")
-        Full_S = inv(M)
+        Full_S = β0 * inv(M)
         for edge = 1:nedges, i in nz_row_inds(S, edge)
             S_comb[i, edge] = Full_S[i, edge]
-        end        
+        end
         # Gradient component
         println("gradient solve...")
         Sol = grad * (pinv(Matrix(grad)) * Full_S)
@@ -196,9 +215,9 @@ function Simplicial_PPR3_decomposed(triangles::Vector{NTuple{3,Int64}},
         # Harmonic component
         for edge = 1:nedges, i in nz_row_inds(S, edge)
             S_harm[i, edge] = S[i, edge] - S_grad[i, edge] - S_curl[i, edge]
-        end        
+        end
     else
-        M = SimplicialPROperator(grad, curl, α)
+        M = SimplicialPROperator(grad, curl, edge_map, α)
         dim = size(M, 1)
         curl_adj = curl'
         edges_in_open_tri = findall(in_open_tri .> 0)
@@ -214,7 +233,7 @@ function Simplicial_PPR3_decomposed(triangles::Vector{NTuple{3,Int64}},
             edge = edges_in_open_tri[ind]
             b = zeros(Float64, dim)
             b[edge] = 1.0
-            sol_comb = bicgstabl(M, b, tol=1e-3) * (1 - α)
+            sol_comb = bicgstabl(M, b, tol=1e-3) * β0
             # split into gradient, harmonic, and curl components
             sol_grad = grad * lsqr(grad, sol_comb, atol=1e-3, btol=1e-3)
             sol_curl = curl_adj * lsqr(curl_adj, sol_comb, atol=1e-3, btol=1e-3)
@@ -315,7 +334,7 @@ function Simplicial_PPR3_combined(triangles::Vector{NTuple{3,Int64}},
     S = make_sparse_ones(S + S')
     S_comb = convert(SpFltMat, S)
 
-    M = SimplicialPROperator(grad, curl, α)
+    M = SimplicialPROperator(grad, curl, edge_map, α)
     dim = size(M, 1)
     curl_adj = curl'
     edges_in_open_tri = findall(in_open_tri .> 0)
