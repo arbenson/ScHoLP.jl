@@ -5,7 +5,7 @@ using Base.Threads
 using Combinatorics
 using DataStructures
 using DelimitedFiles
-using IterativeSolvers
+using Krylov
 using LinearAlgebra
 using LinearOperators
 using Printf
