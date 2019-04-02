@@ -15,7 +15,10 @@ export HONData,
     proj_graph_degree_order,
     nz_row_inds,
     remove_diagonal,
-    split_data
+    split_data,
+    triangle_closed,
+    tetrahedron_closed
+    
 
 """
 example_dataset
@@ -298,6 +301,25 @@ nz_row_inds(A::SpFltMat, ind::Int64) = A.rowval[A.colptr[ind]:(A.colptr[ind + 1]
 nz_row_vals(A::SpIntMat, ind::Int64) = A.nzval[A.colptr[ind]:(A.colptr[ind + 1] - 1)]
 nz_row_vals(A::SpFltMat, ind::Int64) = A.nzval[A.colptr[ind]:(A.colptr[ind + 1] - 1)]
 
+"""
+triangle_closed
+--------------
+
+Checks if a triangle is closed.
+
+triangle_closed(A::SpIntMat, At::SpIntMat, order::Vector{Int64},
+                i::Int64, j::Int64, k::Int64)
+
+Input parameter:
+- A::SpIntMat: (# nodes) x (# simplices) adjacency matrix
+- At::SpIntMat: the transpose of A
+- order::Vector{Int64}: ordering of the nodes
+- i::Int64: first node
+- j::Int64: second node
+- k::Int64: third node
+
+Outputs true or false for closed or open triangle
+"""
 function triangle_closed(A::SpIntMat, At::SpIntMat, order::Vector{Int64},
                          i::Int64, j::Int64, k::Int64)
     ind, nbr1, nbr2 = sort([i, j, k], by=(v -> order[v]), alg=InsertionSort)
@@ -310,6 +332,26 @@ function triangle_closed(A::SpIntMat, At::SpIntMat, order::Vector{Int64},
     return false
 end
 
+"""
+tetrahedron_closed
+--------------
+
+Checks if a tetrahedron is closed.
+
+tetrahedron_closed(A::SpIntMat, At::SpIntMat, order::Vector{Int64},
+                   i::Int64, j::Int64, k::Int64, l::Int64)
+
+Input parameter:
+- A::SpIntMat: (# nodes) x (# simplices) adjacency matrix
+- At::SpIntMat: the transpose of A
+- order::Vector{Int64}: ordering of the nodes
+- i::Int64: first node
+- j::Int64: second node
+- k::Int64: third node
+- l::Int64: fourth node
+
+Outputs true or false for closed or open tetrahedron
+"""
 function tetrahedron_closed(A::SpIntMat, At::SpIntMat, order::Vector{Int64},
                             i::Int64, j::Int64, k::Int64, l::Int64)
     ind, nbr1, nbr2, nbr3 = sort([i, j, k, l], by=(v -> order[v]), alg=InsertionSort)
