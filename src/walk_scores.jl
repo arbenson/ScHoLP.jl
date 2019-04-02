@@ -32,7 +32,7 @@ function iterative_solve(M::SpFltMat, triangles::Vector{NTuple{3,Int64}})
         node = shuffled_inds[ind]
         b = zeros(n)
         b[node] = 1
-        sol = bicgstabl(M, b, tol=1e-3)
+        sol = dqgmres(M, b, atol=1e-4, rtol=1e-4)[1]
         for i in nz_row_inds(M, node)
             push!(I[tid], i)
             push!(J[tid], node)

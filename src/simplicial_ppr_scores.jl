@@ -233,7 +233,7 @@ function Simplicial_PPR3_decomposed(triangles::Vector{NTuple{3,Int64}},
             edge = edges_in_open_tri[ind]
             b = zeros(Float64, dim)
             b[edge] = 1.0
-            sol_comb = bicgstabl(M, b, tol=1e-3) * β0
+            sol_comb = dqgmres(M, b, atol=1e-4, rtol=1e-4)[1] * β0
             # split into gradient, harmonic, and curl components
             sol_grad = grad * lsqr(grad, sol_comb, atol=1e-3, btol=1e-3)
             sol_curl = curl_adj * lsqr(curl_adj, sol_comb, atol=1e-3, btol=1e-3)
@@ -350,7 +350,7 @@ function Simplicial_PPR3_combined(triangles::Vector{NTuple{3,Int64}},
         edge = edges_in_open_tri[ind]
         b = zeros(Float64, dim)
         b[edge] = 1.0
-        sol_comb = bicgstabl(M, b, tol=1e-3) * (1 - α)
+        sol_comb = dqgmres(M, b, atol=1e-4, rtol=1e-4)[1] * (1 - α)
         for i in nz_row_inds(S, edge)
             S_comb[i, edge] = sol_comb[i]
         end
